@@ -1,0 +1,3 @@
+requests
+PyCrypto
+discord.py[voice]
