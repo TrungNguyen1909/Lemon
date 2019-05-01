@@ -38,7 +38,7 @@ async def processTrack():
 	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
 	await track['channel'].send(content = "Now playing:",embed = info)
-	act = discord.Streaming("{} by {}".format(title,artist))
+	act = discord.Game(name = "{} by {}".format(title,artist))
 	await client.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist)
 	chan = track['voice']
