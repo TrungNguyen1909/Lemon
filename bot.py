@@ -18,6 +18,7 @@ def stream_ended():
 	else:
 		client.playing = False
 		asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
+		asyncio.run_coroutine_threadsafe(client.change_presence(activity=None),client.loop)
 async def processTrack():
 	print("Processing track on top of the queue")
 	track = client.queue.get()
@@ -37,6 +38,8 @@ async def processTrack():
 	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
 	await track['channel'].send(content = "Now playing:",embed = info)
+	act = discord.Streaming("{} by {}".format(title,artist))
+	await client.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist)
 	chan = track['voice']
 	if lyrics['has_lrc']:
