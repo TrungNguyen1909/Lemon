@@ -193,7 +193,7 @@ def getlyrics(track,album,artist):
 		return result
 class FFMpeg:
 	def __init__(self,callback = None,lyrics = None,client = None,after = None):
-		self.proc = subprocess.Popen(['/usr/local/bin/ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
+		self.proc = subprocess.Popen(['ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
 		self.stdin = self.proc.stdin
 		self.stdout = self.proc.stdout
 		self.stderr = self.proc.stderr
