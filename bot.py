@@ -1,5 +1,4 @@
 import discord
-from enum import Enum, auto
 from queue import Queue
 from random import shuffle
 import re
