@@ -16,6 +16,8 @@ import fcntl
 from queue import Queue
 import datetime
 import threading
+import urllib3
+urllib3.disable_warnings()
 from urllib.parse import quote_plus
 httpHeaders = {
 		'user-agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
@@ -190,7 +192,7 @@ def getlyrics(track,album,artist):
 		result['error']=True
 		return result
 class FFMpeg:
-	def __init__(self,callback = None,lyrics = None,client = None):
+	def __init__(self,callback = None,lyrics = None,client = None,after = None):
 		self.proc = subprocess.Popen(['/usr/local/bin/ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
 		self.stdin = self.proc.stdin
 		self.stdout = self.proc.stdout
@@ -199,8 +201,10 @@ class FFMpeg:
 		self.callback = callback
 		self.lyrics = lyrics
 		self.client = client
+		self.after = after
 		self.oflag = fcntl.fcntl(self.stdout.fileno(), fcntl.F_GETFL)
 		self.lock = threading.Lock()
+		self.end = False
 		'''
 		fcntl.fcntl(
 				self.stdout.fileno(),
@@ -209,6 +213,8 @@ class FFMpeg:
 			)
 		'''
 	def callbackLyrics(self):
+		if len(self.lyrics) == 0:
+			return
 		self.lock.acquire()
 		line = self.lyrics[0]
 		t = line['time']
@@ -218,6 +224,8 @@ class FFMpeg:
 			if self.callback:
 				asyncio.run(self.callback(client = self.client, text = line['text']))
 			del self.lyrics[0]
+			if len(self.lyrics) == 0:
+				break
 			line = self.lyrics[0]
 			t = line['time']
 		self.lock.release()
@@ -229,6 +237,10 @@ class FFMpeg:
 		if self.lyrics:
 			threading._start_new_thread(self.callbackLyrics,())
 		#print(self.time.strftime("%M:%S"))
+		if len(data)< 3840:
+			self.end = True
+			if self.after:
+				asyncio.create_task(self.after())
 		return data #+ bytearray([0]*(size-len(data)))
 	def write(self,data):
 		r = self.proc.stdin.write(data)
@@ -238,17 +250,25 @@ class FFMpeg:
 		return self.proc.poll() is not None
 	def close(self):
 		self.proc.stdin.close()
+	def cleanup(self):
+		return
+#		print("Killing ffmpeg")
+#		self.end = True
+#		self.proc.kill()
+#		print("ffmpeg killed")
+		#threading._start_new_thread(self.proc.kill,())
 def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
 		ffmpeg.write(chunk)
 	ffmpeg.close()
-def streamTrack(trackid,readCallback=None,lyrics=None,client =None):
-	ffmpeg = FFMpeg(callback=readCallback,lyrics =lyrics,client = client)
+def streamTrack(trackid,readCallback=None,lyrics=None,client =None,after = None):
+	ffmpeg = FFMpeg(callback=readCallback,lyrics =lyrics,client = client,after=after)
 	threading._start_new_thread(stream,(ffmpeg,trackid))
 	return ffmpeg
 async def sendLyrics(client,text):
 	print(text)
 if __name__ =="__main__":
+	import pyaudio
 	initDeezerApi()
 	p = pyaudio.PyAudio()
 	astream = p.open(format=p.get_format_from_width(2),
@@ -270,6 +290,7 @@ if __name__ =="__main__":
 		s = streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],client = None)
 	else:
 		s = streamTrack(trackid)
+	s.cleanup()
 	while True:
 		c = s.read()
 		if c  and len(c)>0:
