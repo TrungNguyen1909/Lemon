@@ -80,6 +80,9 @@ async def on_message(message):
 			return
 		track = track[0]
 		track['channel'] = message.channel
+		if not message.author.voice or not message.author.voice.channel:
+			await message.channel.send("You must be in a voice channel to play music")
+			return 
 		track['voice'] = message.author.voice.channel
 		client.queue.put(track)
 		if not client.playing:
