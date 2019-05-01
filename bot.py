@@ -11,7 +11,7 @@ async def sendLyrics(client,text):
 def stream_ended():
 	print("Stream ended")
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),client.loop)
-	if client.LM:
+	if hasattr(client,"LM"):
 		asyncio.run_coroutine_threadsafe(client.LM.unpin(),client.loop)
 	if not client.queue.empty():
 		asyncio.run_coroutine_threadsafe(processTrack(),client.loop)
@@ -38,7 +38,8 @@ async def processTrack():
 	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
 	await track['channel'].send(content = "Now playing:",embed = info)
-	act = discord.Game(name = "{} by {}".format(title,artist))
+	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
+	act = discord.Game(name="{} by {}".format(title,artist))
 	await client.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist)
 	chan = track['voice']
@@ -57,23 +58,36 @@ async def on_ready():
 	client.queue = Queue()
 	client.playing = False
 	print('We have logged in as {0.user}'.format(client))
+	await client.change_presence(activity=discord.Activity())
 @client.event
 async def on_message(message):
 	if message.author == client.user:
 		return	
 	if message.content.startswith('d!leave'):
 		await client.voiceclient.disconnect()
-		if client.LM:
+		if hasattr(client,"LM") and client.LM:
 			await client.LM.unpin()
 	if message.content.startswith('d!skip'):
 		await client.voiceclient.disconnect()
 		stream_ended()
+	if message.content.startswith('d!queue'):
+		if len(client.queue.queue)==0:
+			await message.channel.send("Empty music queue")
+			return
+		embed = discord.Embed()
+		embed.title = "Music Queue"
+		i = 1
+		for item in client.queue.queue:
+			embed.add_field(name = str(i),value = "{} - {}".format(item['title'],item['artist']['name']),inline=False)
+			i += 1
+		await message.channel.send(content=None,embed=embed)
 	if message.content.startswith('d!play'):
 		deez.initDeezerApi()
 		content = message.content[len('d!play'):]
 		data = None
 		if '-' in content:
-			track,artist = content.split('-')
+			track = content.split('-')[0]
+			artist = content[len(track)+1::]
 		else:
 			track,artist = content,None
 		track = deez.search(track,artist)
