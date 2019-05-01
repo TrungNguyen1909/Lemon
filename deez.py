@@ -10,7 +10,6 @@ from Crypto.Cipher import AES,Blowfish,blockalgo
 from time import sleep
 import json
 import binascii
-import pyaudio
 import subprocess
 import asyncio
 import fcntl
