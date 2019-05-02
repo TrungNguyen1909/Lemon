@@ -192,7 +192,7 @@ def getlyrics(track,album,artist):
 		result['error']=True
 		return result
 class FFMpeg:
-	def __init__(self,callback = None,lyrics = None,client = None,after = None):
+	def __init__(self,callback = None,lyrics = None,after = None):
 		self.proc = subprocess.Popen(['ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
 		self.stdin = self.proc.stdin
 		self.stdout = self.proc.stdout
@@ -200,7 +200,6 @@ class FFMpeg:
 		self.time = datetime.time()
 		self.callback = callback
 		self.lyrics = lyrics
-		self.client = client
 		self.after = after
 		self.oflag = fcntl.fcntl(self.stdout.fileno(), fcntl.F_GETFL)
 		self.lock = threading.Lock()
@@ -222,7 +221,7 @@ class FFMpeg:
 		while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 			#print(line['text'])
 			if self.callback:
-				asyncio.run(self.callback(client = self.client, text = line['text']))
+				asyncio.run(self.callback(text = line['text']))
 			del self.lyrics[0]
 			if len(self.lyrics) == 0:
 				break
@@ -261,11 +260,11 @@ def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
 		ffmpeg.write(chunk)
 	ffmpeg.close()
-def streamTrack(trackid,readCallback=None,lyrics=None,client =None,after = None):
-	ffmpeg = FFMpeg(callback=readCallback,lyrics =lyrics,client = client,after=after)
+def streamTrack(trackid,readCallback=None,lyrics=None,after = None):
+	ffmpeg = FFMpeg(callback=readCallback,lyrics =lyrics,after=after)
 	threading._start_new_thread(stream,(ffmpeg,trackid))
 	return ffmpeg
-async def sendLyrics(client,text):
+async def sendLyrics(text):
 	print(text)
 if __name__ =="__main__":
 	import pyaudio

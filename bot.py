@@ -5,7 +5,7 @@ import re
 import asyncio
 import deez
 client = discord.Client()
-async def sendLyrics(client,text):
+async def sendLyrics(text):
 	#print(text)
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
 def stream_ended():
@@ -46,9 +46,9 @@ async def processTrack():
 	if lyrics['has_lrc']:
 		client.LM = await track['channel'].send("```Now playing\n{} - {}\n```".format(title,artist))
 		await client.LM.pin()
-		stream = deez.streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],client = client,after = stream_ended)
+		stream = deez.streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],after = stream_ended)
 	else:
-		stream = deez.streamTrack(trackid,client = client,after = stream_ended)
+		stream = deez.streamTrack(trackid,after = stream_ended)
 	if chan is not None:
 		client.playing = True
 		client.voiceclient = await chan.connect()
@@ -61,14 +61,17 @@ async def on_ready():
 	await client.change_presence(activity=discord.Activity())
 @client.event
 async def on_message(message):
-	if message.author == client.user:
+	if message.author.bot:
 		return	
 	if message.content.startswith('d!leave'):
-		await client.voiceclient.disconnect()
+		if hasattr(client,"voiceclient"):
+			client.voiceclient.stop()
+			await client.voiceclient.disconnect()
 		if hasattr(client,"LM") and client.LM:
 			await client.LM.unpin()
 	if message.content.startswith('d!skip'):
-		await client.voiceclient.disconnect()
+		if hasattr(client,"voiceclient"):
+			await client.voiceclient.disconnect()
 		stream_ended()
 	if message.content.startswith('d!queue'):
 		if len(client.queue.queue)==0:
