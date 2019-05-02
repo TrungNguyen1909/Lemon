@@ -17,8 +17,9 @@ def stream_ended():
 		asyncio.run_coroutine_threadsafe(processTrack(),client.loop)
 	else:
 		client.playing = False
-		asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
-		asyncio.run_coroutine_threadsafe(client.change_presence(activity=None),client.loop)
+		if hasattr(client,"LM"):
+			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
+		asyncio.run_coroutine_threadsafe(client.change_presence(activity=discord.Activity()),client.loop)
 async def processTrack():
 	print("Processing track on top of the queue")
 	track = client.queue.get()
