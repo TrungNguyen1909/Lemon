@@ -46,7 +46,10 @@ async def processTrack():
 	chan = track['voice']
 	if not lyrics['error'] and lyrics['has_lrc']:
 		client.LM = await track['channel'].send("```Now playing\n{} - {}\n```".format(title,artist))
-		await client.LM.pin()
+		try:
+			await client.LM.pin()
+		except:
+			pass
 		stream = deez.streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],after = stream_ended)
 	else:
 		stream = deez.streamTrack(trackid,after = stream_ended)
