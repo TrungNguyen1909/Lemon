@@ -221,7 +221,7 @@ class FFMpeg:
 		while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 			#print(line['text'])
 			if self.callback:
-				asyncio.run(self.callback(text = line['text']))
+				asyncio.create_task(self.callback(text = line['text']))
 			del self.lyrics[0]
 			if len(self.lyrics) == 0:
 				break
