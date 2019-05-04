@@ -28,6 +28,7 @@ async def processTrack():
 	artist = track['artist']['name']
 	album = track['album']['title']
 	cover = track['album']['cover_medium']
+	duration = track['duration']
 	copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 	info = discord.Embed()
 	info.title = title
@@ -42,7 +43,7 @@ async def processTrack():
 	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await client.change_presence(activity=act)
-	lyrics = deez.getlyrics(title, album, artist)
+	lyrics = deez.getlyrics(title, album, artist,duration)
 	chan = track['voice']
 	if not lyrics['error'] and lyrics['has_lrc']:
 		client.LM = await track['channel'].send("```Now playing\n{} - {}\n```".format(title,artist))

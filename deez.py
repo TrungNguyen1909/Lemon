@@ -16,6 +16,7 @@ import fcntl
 from queue import Queue
 import datetime
 import threading
+from collections import deque
 import urllib3
 urllib3.disable_warnings()
 from urllib.parse import quote_plus
@@ -146,7 +147,7 @@ def search(track,artist = None):
 	else:
 		return requests.get('https://api.deezer.com/search?q=track:"{}"artist:"{}"'.format(quote_plus(track),quote_plus(artist))).json()['data']
 		
-def getlyrics(track,album,artist):
+def getlyrics(track,album,artist,duration = None):
 	USER_TOKEN = '***REMOVED***'
 	headers = {
 		'$Host': 'apic-desktop.musixmatch.com',
@@ -156,7 +157,7 @@ def getlyrics(track,album,artist):
 		'$Accept-Encoding': 'gzip, deflate',
 	}
 
-	params = (
+	params = [
 		('format', 'json'),
 		('q_track', track),
 		('q_artist', artist),
@@ -168,7 +169,10 @@ def getlyrics(track,album,artist):
 		('subtitle_format', 'mxm'),
 		('app_id', 'web-desktop-app-v1.0'),
 		('usertoken', USER_TOKEN),	
-	)
+	]
+	if duration:
+		params.append(('q_duration', duration))
+		params.append(('f_subtitle_length', duration))
 	result = {}
 	result['error']=False
 	try:
@@ -199,11 +203,17 @@ class FFMpeg:
 		self.stderr = self.proc.stderr
 		self.time = datetime.time()
 		self.callback = callback
-		self.lyrics = lyrics
+		if type(lyrics) != type(deque):
+			self.lyrics = deque(lyrics)
+		else:
+			self.lyrics = lyrics
 		self.after = after
 		self.oflag = fcntl.fcntl(self.stdout.fileno(), fcntl.F_GETFL)
 		self.lock = threading.Lock()
-		self.end = False
+		self.end = threading.Event()
+		self.new_time = threading.Event()
+		threading._start_new_thread(self.callbackLyrics,())
+		threading._start_new_thread(self.cleanup,())
 		'''
 		fcntl.fcntl(
 				self.stdout.fileno(),
@@ -214,30 +224,34 @@ class FFMpeg:
 	def callbackLyrics(self):
 		if len(self.lyrics) == 0:
 			return
-		self.lock.acquire()
-		line = self.lyrics[0]
-		t = line['time']
-		#F"[{line['time']['minutes']:02}:{line['time']['seconds']:02}.{line['time']['hundredths']:02}]"
-		while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
-			#print(line['text'])
-			if self.callback:
-				threading._start_new_thread(self.callback,(),{'text':line['text']})
-			del self.lyrics[0]
+		while True:
+			if self.end.is_set():
+				return
+			self.new_time.wait()
+			self.new_time.clear()
 			if len(self.lyrics) == 0:
-				break
+				return
 			line = self.lyrics[0]
 			t = line['time']
-		self.lock.release()
+			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
+				#print(line['text'])
+				if self.callback:
+					threading._start_new_thread(self.callback,(),{'text':line['text']})
+				self.lyrics.popleft()
+				if len(self.lyrics) == 0:
+					return
+				line = self.lyrics[0]
+				t = line['time']
 	def __del__(self):
 		self.proc.terminate()
 	def read(self,size=3840):
 		data =  self.proc.stdout.read(size)
 		self.time = (datetime.datetime.combine(datetime.date(1,1,1),self.time) + datetime.timedelta(milliseconds=20)).time()
 		if self.lyrics:
-			threading._start_new_thread(self.callbackLyrics,())
+			self.new_time.set()
 		#print(self.time.strftime("%M:%S"))
 		if len(data)< 3840:
-			self.end = True
+			self.end.set()
 			if self.after:
 				asyncio.create_task(self.after())
 		return data #+ bytearray([0]*(size-len(data)))
@@ -249,7 +263,12 @@ class FFMpeg:
 		return self.proc.poll() is not None
 	def close(self):
 		self.proc.stdin.close()
+	def stop(self):
+		self.end.set()
 	def cleanup(self):
+		self.end.wait()
+		print("Stream ended. House-keeping.")
+		self.new_time.set()
 		return
 #		print("Killing ffmpeg")
 #		self.end = True
