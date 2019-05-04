@@ -5,7 +5,7 @@ import re
 import asyncio
 import deez
 client = discord.Client()
-async def sendLyrics(text):
+def sendLyrics(text):
 	#print(text)
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
 def stream_ended():
