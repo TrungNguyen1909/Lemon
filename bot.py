@@ -7,6 +7,8 @@ import deez
 client = discord.Client()
 def sendLyrics(text):
 	#print(text)
+	if len(text) == 0:
+		text = client.placeholder
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
 def stream_ended():
 	print("Stream ended")
@@ -17,6 +19,8 @@ def stream_ended():
 		asyncio.run_coroutine_threadsafe(processTrack(),client.loop)
 	else:
 		client.playing = False
+		if hasattr(client,'placeholder'):
+			client.placeholder = None
 		if hasattr(client,"LM"):
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
 		asyncio.run_coroutine_threadsafe(client.change_presence(activity=discord.Activity()),client.loop)
@@ -57,11 +61,13 @@ async def processTrack():
 	if chan is not None:
 		client.playing = True
 		client.voiceclient = await chan.connect()
+		client.placeholder = "{} - {}".format(title,artist)
 		client.voiceclient.play(discord.PCMAudio(stream),after=None)
 @client.event
 async def on_ready():
 	client.queue = Queue()
 	client.playing = False
+	client.placeholder = None
 	print('We have logged in as {0.user}'.format(client))
 	await client.change_presence(activity=discord.Activity())
 @client.event
