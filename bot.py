@@ -95,7 +95,7 @@ async def on_message(message):
 		embed.title = "Music Queue"
 		i = 1
 		for item in client.queue.queue:
-			embed.add_field(name = "{}. {} - {}".format(i,item['title'],item['artist']['name']),value = ' ',inline=False)
+			embed.add_field(name = "{}.".format(i),value = "{} - {}".format(i,item['title'],item['artist']['name']),inline=False)
 			i += 1
 		await message.channel.send(content=None,embed=embed)
 	if message.content.startswith('d!play'):
