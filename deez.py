@@ -222,7 +222,7 @@ class FFMpeg:
 			)
 		'''
 	def callbackLyrics(self):
-		if len(self.lyrics) == 0:
+		if not self.lyrics or len(self.lyrics) == 0:
 			return
 		while True:
 			if self.end.is_set():
