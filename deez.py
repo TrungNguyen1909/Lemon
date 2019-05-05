@@ -203,7 +203,7 @@ class FFMpeg:
 		self.stderr = self.proc.stderr
 		self.time = datetime.time()
 		self.callback = callback
-		if type(lyrics) != type(deque):
+		if lyrics and type(lyrics) != type(deque):
 			self.lyrics = deque(lyrics)
 		else:
 			self.lyrics = lyrics
