@@ -25,6 +25,8 @@ def stream_ended():
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
 		asyncio.run_coroutine_threadsafe(client.change_presence(activity=discord.Activity()),client.loop)
 async def processTrack():
+	if not client.queue or len(client.queue)==0:
+		return
 	print("Processing track on top of the queue")
 	track = client.queue.get()
 	trackid = track['id']
@@ -88,6 +90,14 @@ async def on_message(message):
 		if hasattr(client,"voiceclient"):
 			await client.voiceclient.disconnect()
 		stream_ended()
+	if message.content.startswith('d!pause'):
+		if hasattr(client,"voiceclient"):
+			await client.voiceclient.pause()
+	if message.content.startswith('d!resume'):
+		if hasattr(client,"voiceclient"):
+			await client.voiceclient.resume()
+		else:
+			processTrack()
 	if message.content.startswith('d!queue'):
 		if len(client.queue.queue)==0:
 			await message.channel.send("Empty music queue")
