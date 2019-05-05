@@ -75,6 +75,7 @@ async def on_message(message):
 	if message.author.bot:
 		return	
 	if message.content.startswith('d!leave'):
+		await client.change_presence(activity=discord.Activity())
 		if hasattr(client,"voiceclient"):
 			client.voiceclient.stop()
 			await client.voiceclient.disconnect()
