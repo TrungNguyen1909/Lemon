@@ -11,6 +11,10 @@ def sendLyrics(text):
 		text = client.placeholder
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
 def stream_ended():
+	if client.looping:
+		if client.np:
+			client.queue.put(client.np)
+			client.np = None
 	print("Stream ended")
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),client.loop)
 	if hasattr(client,"LM"):
@@ -29,6 +33,7 @@ async def processTrack():
 		return
 	print("Processing track on top of the queue")
 	track = client.queue.get()
+	client.np = track	
 	trackid = track['id']
 	title = track['title']
 	artist = track['artist']['name']
@@ -68,7 +73,9 @@ async def processTrack():
 @client.event
 async def on_ready():
 	client.queue = Queue()
+	client.looping = False
 	client.playing = False
+	client.np = None
 	client.placeholder = None
 	print('We have logged in as {0.user}'.format(client))
 	await client.change_presence(activity=discord.Activity())
@@ -86,6 +93,13 @@ async def on_message(message):
 				await client.LM.unpin()
 			except:
 				pass
+	if message.content.startswith('d!loop'):
+		client.looping =not client.looping
+		if client.loop:
+			await message.channel.send("Looping enabled")
+		else:
+			await message.channel.send("Looping disabled")
+
 	if message.content.startswith('d!skip'):
 		if hasattr(client,"voiceclient"):
 			await client.voiceclient.disconnect()
