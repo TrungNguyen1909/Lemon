@@ -4,33 +4,39 @@ from random import shuffle
 import re
 import asyncio
 import deez
-client = discord.Client()
+cl = discord.Client()
 gq = {}
-
-def sendLyrics(text):
+class mServer():
+	def __init__(self):
+		self.queue = Queue()
+		self.looping = False
+		self.playing = False
+		self.np = None
+		self.placeholder = None
+def sendLyrics(client,text):
 	#print(text)
 	if len(text) == 0:
 		text = client.placeholder
-	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
-def stream_ended(leave=False):
+	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),cl.loop)
+def stream_ended(client,leave=False):
 	if client.looping:
 		if client.np:
 			client.queue.put(client.np)
 			client.np = None
 	print("Stream ended")
-	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),client.loop)
+	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
 	if hasattr(client,"LM"):
-		asyncio.run_coroutine_threadsafe(client.LM.unpin(),client.loop)
+		asyncio.run_coroutine_threadsafe(client.LM.unpin(),cl.loop)
 	if not client.queue.empty() and not leave:
-		asyncio.run_coroutine_threadsafe(processTrack(),client.loop)
+		asyncio.run_coroutine_threadsafe(processTrack(client),cl.loop)
 	else:
 		client.playing = False
 		if hasattr(client,'placeholder'):
 			client.placeholder = None
 		if hasattr(client,"LM"):
-			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),client.loop)
-		asyncio.run_coroutine_threadsafe(client.change_presence(activity=discord.Activity()),client.loop)
-async def processTrack():
+			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),cl.loop)
+		asyncio.run_coroutine_threadsafe(cl.change_presence(activity=discord.Activity()),cl.loop)
+async def processTrack(client):
 	if not client.queue or client.queue.qsize()==0:
 		await message.channel.send("Empty music queue")
 		return
@@ -56,7 +62,7 @@ async def processTrack():
 	await track['channel'].send(content = "Now playing:",embed = info)
 	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
-	await client.change_presence(activity=act)
+	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
 	chan = track['voice']
 	if not lyrics['error'] and lyrics['has_lrc']:
@@ -65,41 +71,39 @@ async def processTrack():
 			await client.LM.pin()
 		except:
 			pass
-		stream = deez.streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],after = stream_ended)
+		stream = deez.streamTrack(trackid,client=client,readCallback = sendLyrics,lyrics = lyrics['lrc'],after = stream_ended)
 	else:
-		stream = deez.streamTrack(trackid,after = stream_ended)
+		stream = deez.streamTrack(trackid,client=client,after = stream_ended)
 	if chan is not None:
 		client.playing = True
 		client.voiceclient = await chan.connect()
 		client.placeholder = "{} - {}".format(title,artist)
 		client.voiceclient.play(discord.PCMAudio(stream),after=None)
-@client.event
+@cl.event
 async def on_ready():
-	client.queue = Queue()
-	client.looping = False
-	client.playing = False
-	client.np = None
-	client.placeholder = None
-	print('We have logged in as {0.user}'.format(client))
-	await client.change_presence(activity=discord.Activity())
-@client.event
+	print('We have logged in as {0.user}'.format(cl))
+	await cl.change_presence(activity=discord.Activity())
+@cl.event
 async def on_message(message):
 	if message.author.bot:
-		return	
+		return
+	if message.guild.id not in gq:
+		gq[message.guild.id] = mServer()
+	client = gq[message.guild.id]
 	if message.content.startswith('d!leave'):
-		stream_ended(leave=True)
+		stream_ended(client,leave=True)
 		await message.channel.send("Left voice channel and skipped song")
 	if message.content.startswith('d!loop'):
-		client.looping =not client.looping
+		cl.looping =not client.looping
 		if client.looping:
 			await message.channel.send("Looping enabled")
 		else:
 			await message.channel.send("Looping disabled")
 
 	if message.content.startswith('d!skip'):
-		stream_ended()
+		stream_ended(client)
 	if message.content.startswith('d!stop'):
-		stream_ended(leave = True)
+		stream_ended(client,leave = True)
 		while not client.queue.empty():
 			client.queue.get()
 		await message.channel.send("Stopped playing music and destroyed queue.")
@@ -110,9 +114,9 @@ async def on_message(message):
 		if hasattr(client,"voiceclient"):
 			client.voiceclient.resume()
 		else:
-			processTrack()
+			processTrack(client)
 	if message.content.startswith('d!queue'):
-		if len(client.queue.queue)==0:
+		if client.queue.qsize()==0:
 			await message.channel.send("Empty music queue")
 			return
 		embed = discord.Embed()
@@ -133,7 +137,7 @@ async def on_message(message):
 			track,artist = content,None
 			if len(track.strip()) == 0:
 				if not client.playing:
-					processTrack()
+					processTrack(client)
 		track = deez.search(track,artist)
 		#print(track)
 		if len(track) == 0:
@@ -147,7 +151,7 @@ async def on_message(message):
 		track['voice'] = message.author.voice.channel
 		client.queue.put(track)
 		if not client.playing:
-			await processTrack()
+			await processTrack(client)
 		else:
 			trackid = track['id']
 			title = track['title']
@@ -165,4 +169,4 @@ async def on_message(message):
 			info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 			info.set_image(url = cover)
 			await message.channel.send(content="Added to queue",embed = info)
-client.run('***REMOVED***')
+cl.run('***REMOVED***')

@@ -196,7 +196,7 @@ def getlyrics(track,album,artist,duration = None):
 		result['error']=True
 		return result
 class FFMpeg:
-	def __init__(self,callback = None,lyrics = None,after = None):
+	def __init__(self,client = None,callback = None,lyrics = None,after = None):
 		self.proc = subprocess.Popen(['ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
 		self.stdin = self.proc.stdin
 		self.stdout = self.proc.stdout
@@ -212,6 +212,7 @@ class FFMpeg:
 		self.lock = threading.Lock()
 		self.end = threading.Event()
 		self.new_time = threading.Event()
+		self.client = client
 		threading._start_new_thread(self.callbackLyrics,())
 		threading._start_new_thread(self.cleanup,())
 		'''
@@ -236,7 +237,7 @@ class FFMpeg:
 			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 				#print(line['text'])
 				if self.callback:
-					threading._start_new_thread(self.callback,(),{'text':line['text']})
+					threading._start_new_thread(self.callback,(),{'client':self.client,'text':line['text']})
 				self.lyrics.popleft()
 				if len(self.lyrics) == 0:
 					return
@@ -253,7 +254,7 @@ class FFMpeg:
 		if len(data)< 3840:
 			self.end.set()
 			if self.after:
-				asyncio.create_task(self.after())
+				asyncio.create_task(self.after(client = self.client))
 		return data #+ bytearray([0]*(size-len(data)))
 	def write(self,data):
 		r = self.proc.stdin.write(data)
@@ -279,8 +280,8 @@ def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
 		ffmpeg.write(chunk)
 	ffmpeg.close()
-def streamTrack(trackid,readCallback=None,lyrics=None,after = None):
-	ffmpeg = FFMpeg(callback=readCallback,lyrics =lyrics,after=after)
+def streamTrack(trackid,client = None,readCallback=None,lyrics=None,after = None):
+	ffmpeg = FFMpeg(client = client,callback=readCallback,lyrics =lyrics,after=after)
 	threading._start_new_thread(stream,(ffmpeg,trackid))
 	return ffmpeg
 async def sendLyrics(text):
