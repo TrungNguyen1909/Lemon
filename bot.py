@@ -95,7 +95,7 @@ async def on_message(message):
 				pass
 	if message.content.startswith('d!loop'):
 		client.looping =not client.looping
-		if client.loop:
+		if client.looping:
 			await message.channel.send("Looping enabled")
 		else:
 			await message.channel.send("Looping disabled")
