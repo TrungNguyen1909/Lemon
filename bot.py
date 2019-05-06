@@ -5,12 +5,14 @@ import re
 import asyncio
 import deez
 client = discord.Client()
+gq = {}
+
 def sendLyrics(text):
 	#print(text)
 	if len(text) == 0:
 		text = client.placeholder
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),client.loop)
-def stream_ended():
+def stream_ended(leave=False):
 	if client.looping:
 		if client.np:
 			client.queue.put(client.np)
@@ -19,7 +21,7 @@ def stream_ended():
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),client.loop)
 	if hasattr(client,"LM"):
 		asyncio.run_coroutine_threadsafe(client.LM.unpin(),client.loop)
-	if not client.queue.empty():
+	if not client.queue.empty() and not leave:
 		asyncio.run_coroutine_threadsafe(processTrack(),client.loop)
 	else:
 		client.playing = False
@@ -30,6 +32,7 @@ def stream_ended():
 		asyncio.run_coroutine_threadsafe(client.change_presence(activity=discord.Activity()),client.loop)
 async def processTrack():
 	if not client.queue or client.queue.qsize()==0:
+		await message.channel.send("Empty music queue")
 		return
 	print("Processing track on top of the queue")
 	track = client.queue.get()
@@ -84,15 +87,8 @@ async def on_message(message):
 	if message.author.bot:
 		return	
 	if message.content.startswith('d!leave'):
-		await client.change_presence(activity=discord.Activity())
-		if hasattr(client,"voiceclient"):
-			client.voiceclient.stop()
-			await client.voiceclient.disconnect()
-		if hasattr(client,"LM") and client.LM:
-			try:
-				await client.LM.unpin()
-			except:
-				pass
+		stream_ended(leave=True)
+		await message.channel.send("Left voice channel and skipped song")
 	if message.content.startswith('d!loop'):
 		client.looping =not client.looping
 		if client.looping:
@@ -101,12 +97,15 @@ async def on_message(message):
 			await message.channel.send("Looping disabled")
 
 	if message.content.startswith('d!skip'):
-		if hasattr(client,"voiceclient"):
-			await client.voiceclient.disconnect()
 		stream_ended()
+	if message.content.startswith('d!stop'):
+		stream_ended(leave = True)
+		while not client.queue.empty():
+			client.queue.get()
+		await message.channel.send("Stopped playing music and destroyed queue.")
 	if message.content.startswith('d!pause'):
 		if hasattr(client,"voiceclient"):
-			await client.voiceclient.pause()
+			client.voiceclient.pause()
 	if message.content.startswith('d!resume'):
 		if hasattr(client,"voiceclient"):
 			client.voiceclient.resume()
@@ -132,6 +131,9 @@ async def on_message(message):
 			artist = content[len(track)+1::]
 		else:
 			track,artist = content,None
+			if len(track.strip()) == 0:
+				if not client.playing:
+					processTrack()
 		track = deez.search(track,artist)
 		#print(track)
 		if len(track) == 0:
