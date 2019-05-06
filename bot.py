@@ -95,7 +95,7 @@ async def on_message(message):
 			await client.voiceclient.pause()
 	if message.content.startswith('d!resume'):
 		if hasattr(client,"voiceclient"):
-			await client.voiceclient.resume()
+			client.voiceclient.resume()
 		else:
 			processTrack()
 	if message.content.startswith('d!queue'):
