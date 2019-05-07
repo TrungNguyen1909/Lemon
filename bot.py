@@ -94,7 +94,7 @@ async def on_message(message):
 		stream_ended(client,leave=True)
 		await message.channel.send("Left voice channel and skipped song")
 	if message.content.startswith('d!loop'):
-		cl.looping =not client.looping
+		client.looping =not client.looping
 		if client.looping:
 			await message.channel.send("Looping enabled")
 		else:
