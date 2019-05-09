@@ -147,6 +147,13 @@ def search(track,artist = None):
 	else:
 		return requests.get('https://api.deezer.com/search?q=track:"{}"artist:"{}"'.format(quote_plus(track),quote_plus(artist))).json()['data']
 		
+def searchAlbum(album,artist = None):
+	if not artist:
+			return requests.get('https://api.deezer.com/search/album?q=album:"{}"'.format(quote_plus(album))).json()['data']
+	else:
+		return requests.get('https://api.deezer.com/search/album?q=album:"{}"artist:"{}"'.format(quote_plus(album),quote_plus(artist))).json()['data']
+def getAlbumTracks(albumid):
+	return requests.get("https://api.deezer.com/album/{}/tracks".format(albumid)).json()['data']
 def getlyrics(track,album,artist,duration = None):
 	USER_TOKEN = '***REMOVED***'
 	headers = {

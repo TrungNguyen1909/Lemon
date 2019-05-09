@@ -47,7 +47,7 @@ async def processTrack(client):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_medium']
+	cover = track['album']['cover_xl']
 	duration = track['duration']
 	copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 	info = discord.Embed()
@@ -60,7 +60,7 @@ async def processTrack(client):
 	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
 	await track['channel'].send(content = "Now playing:",embed = info)
-	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
+	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_xl'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
@@ -79,6 +79,22 @@ async def processTrack(client):
 		client.voiceclient = await chan.connect()
 		client.placeholder = "{} - {}".format(title,artist)
 		client.voiceclient.play(discord.PCMAudio(stream),after=None)
+def processAlbum(client,album):
+	albumid = album['id']
+	title = album['title']
+	artist = album['artist']['name']
+	cover = album['cover_xl']
+	info = discord.Embed()
+	info.title = title
+	info.add_field(name = "Artist",value = artist)
+	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
+	info.set_image(url = cover)
+	tracklist = deez.getAlbumTracks(albumid)
+	l = ''
+	for track in tracklist:
+		l += track['title']+'\n'
+	info.add_field(name="Tracks",value=l)
+	return (info,tracklist)
 @cl.event
 async def on_ready():
 	print('We have logged in as {0.user}'.format(cl))
@@ -114,7 +130,7 @@ async def on_message(message):
 		if hasattr(client,"voiceclient"):
 			client.voiceclient.resume()
 		else:
-			processTrack(client)
+			await processTrack(client)
 	if message.content.startswith('d!queue'):
 		if client.queue.qsize()==0:
 			await message.channel.send("Empty music queue")
@@ -123,10 +139,43 @@ async def on_message(message):
 		embed.title = "Music Queue"
 		i = 1
 		for item in client.queue.queue:
-			embed.add_field(name = "{}.".format(i),value = "{} - {}".format(i,item['title'],item['artist']['name']),inline=False)
+			embed.add_field(name = "{}.".format(i),value = "{} - {}".format(item['title'],item['artist']['name']),inline=False)
 			i += 1
 		await message.channel.send(content=None,embed=embed)
+	if message.content.startswith('d!album'):
+		if not message.author.voice or not message.author.voice.channel:
+			await message.channel.send("You must be in a voice channel to play music")
+			return
+		deez.initDeezerApi()
+		content = message.content[len('d!album'):]
+		data = None
+		if '-' in content:
+			album = content.split('-')[0]
+			artist = content[len(album)+1::]
+		else:
+			album,artist = content,None
+			if len(album.strip()) == 0:
+				if not client.playing:
+					await processTrack(client)
+		albums = deez.searchAlbum(album,artist)
+		if len(albums) == 0:
+			await message.channel.send("Sorry, I can't find that album.")
+			return
+		album = albums[0]
+		albuminfo = processAlbum(client, album)
+		await message.channel.send(content="Album:",embed = albuminfo[0])
+		trackList = albuminfo[1]
+		for track in trackList:
+			track['channel'] = message.channel
+			track['voice'] = message.author.voice.channel
+			track['album'] = album
+			client.queue.put(track)
+		if not client.playing:
+			await processTrack(client)
 	if message.content.startswith('d!play'):
+		if not message.author.voice or not message.author.voice.channel:
+			await message.channel.send("You must be in a voice channel to play music")
+			return 
 		deez.initDeezerApi()
 		content = message.content[len('d!play'):]
 		data = None
@@ -137,17 +186,14 @@ async def on_message(message):
 			track,artist = content,None
 			if len(track.strip()) == 0:
 				if not client.playing:
-					processTrack(client)
+					await processTrack(client)
 		track = deez.search(track,artist)
 		#print(track)
 		if len(track) == 0:
-			await message.channel.send("Sorry, currently I can't find that track.")
+			await message.channel.send("Sorry, I can't find that track.")
 			return
 		track = track[0]
 		track['channel'] = message.channel
-		if not message.author.voice or not message.author.voice.channel:
-			await message.channel.send("You must be in a voice channel to play music")
-			return 
 		track['voice'] = message.author.voice.channel
 		client.queue.put(track)
 		if not client.playing:
@@ -157,7 +203,7 @@ async def on_message(message):
 			title = track['title']
 			artist = track['artist']['name']
 			album = track['album']['title']
-			cover = track['album']['cover_medium']
+			cover = track['album']['cover_xl']
 			copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 			info = discord.Embed()
 			info.title = title
