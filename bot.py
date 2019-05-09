@@ -33,7 +33,7 @@ def stream_ended(client,leave=False):
 		client.playing = False
 		if hasattr(client,'placeholder'):
 			client.placeholder = None
-		if hasattr(client,"LM"):
+		if hasattr(client,"LM") and client.queue.qsize()==0:
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),cl.loop)
 		asyncio.run_coroutine_threadsafe(cl.change_presence(activity=discord.Activity()),cl.loop)
 async def processTrack(client):
@@ -106,6 +106,19 @@ async def on_message(message):
 	if message.guild.id not in gq:
 		gq[message.guild.id] = mServer()
 	client = gq[message.guild.id]
+	if message.content.startswith('d!help'):
+		embed = discord.Embed()
+		embed.title = "Help"
+		embed.add_field(name = "`d!help`", value="Shows this help message",inline=False)
+		embed.add_field(name = "`d!play song_name [- artist]`", value="Plays/Queues a song.",inline=False)
+		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
+		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
+		embed.add_field(name = "`d!skip`", value="Skips the current song",inline=False)
+		embed.add_field(name = "`d!pause`", value="Pauses the current song",inline=False)
+		embed.add_field(name = "`d!resume`", value="Resume the paused song",inline=False)
+		embed.add_field(name = "`d!leave`", value="Skips the current song and leaves the current voice channel.",inline=False)
+		embed.add_field(name = "`d!stop`", value="Stops the music session, destroy the whole queue",inline=False)
+		await message.channel.send(embed = embed)
 	if message.content.startswith('d!leave'):
 		stream_ended(client,leave=True)
 		await message.channel.send("Left voice channel and skipped song")
