@@ -13,10 +13,17 @@ class mServer():
 		self.playing = False
 		self.np = None
 		self.placeholder = None
-def sendLyrics(client,text):
+def sendLyrics(client,line):
 	#print(text)
+	text = line['text']
 	if len(text) == 0:
 		text = client.placeholder
+	elif 'en_text' in line:
+		et = line['en_text']
+		if len(et) == 0:
+			et = client.placeholder
+		else:
+			text += '\n\n'+et+'\n'
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),cl.loop)
 def stream_ended(client,leave=False):
 	if client.looping:

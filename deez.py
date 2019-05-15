@@ -18,6 +18,7 @@ import datetime
 import threading
 from collections import deque
 import urllib3
+from lyrics import *
 urllib3.disable_warnings()
 from urllib.parse import quote_plus
 httpHeaders = {
@@ -154,54 +155,7 @@ def searchAlbum(album,artist = None):
 		return requests.get('https://api.deezer.com/search/album?q=album:"{}"artist:"{}"'.format(quote_plus(album),quote_plus(artist))).json()['data']
 def getAlbumTracks(albumid):
 	return requests.get("https://api.deezer.com/album/{}/tracks".format(albumid)).json()['data']
-def getlyrics(track,album,artist,duration = None):
-	USER_TOKEN = '***REMOVED***'
-	headers = {
-		'$Host': 'apic-desktop.musixmatch.com',
-		'$Connection': 'close',
-		'$User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Musixmatch/0.21.27 Chrome/66.0.3359.181 Electron/3.1.3 Safari/537.36',
-		'$Accept': '*/*',
-		'$Accept-Encoding': 'gzip, deflate',
-	}
 
-	params = [
-		('format', 'json'),
-		('q_track', track),
-		('q_artist', artist),
-		('q_album', album),
-		('user_language', 'en'),
-		('tags', 'nowplaying'),
-		('namespace', 'lyrics_synched'),
-		('f_subtitle_length_max_deviation', '1'),
-		('subtitle_format', 'mxm'),
-		('app_id', 'web-desktop-app-v1.0'),
-		('usertoken', USER_TOKEN),	
-	]
-	if duration:
-		params.append(('q_duration', duration))
-		params.append(('f_subtitle_length', duration))
-	result = {}
-	result['error']=False
-	try:
-		response = requests.get('https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get', headers=headers, params=params, verify=False)
-		d = json.loads(response.text)
-		lyrics = d['message']['body']['macro_calls']['track.lyrics.get']['message']['body']['lyrics']['lyrics_body']
-		#print(lyrics)
-		result['txt'] = lyrics
-		result['has_lrc'] = False
-		try:
-			synced_lyrics = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_body']
-			sd = json.loads(synced_lyrics)
-			
-			result['lrc']=sd
-			result['has_lrc']=True
-		except:
-			pass
-		finally:
-			return result
-	except:
-		result['error']=True
-		return result
 class FFMpeg:
 	def __init__(self,client = None,callback = None,lyrics = None,after = None):
 		self.proc = subprocess.Popen(['ffmpeg','-nostdin','-f','mp3','-i','-','-analyzeduration','0','-loglevel','0','-f','s16le','-ac','2','-ar','48000','pipe:1'],stdin = subprocess.PIPE,stdout = subprocess.PIPE,stderr = subprocess.DEVNULL)
@@ -244,7 +198,7 @@ class FFMpeg:
 			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 				#print(line['text'])
 				if self.callback:
-					threading._start_new_thread(self.callback,(),{'client':self.client,'text':line['text']})
+					threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
 				self.lyrics.popleft()
 				if len(self.lyrics) == 0:
 					return
