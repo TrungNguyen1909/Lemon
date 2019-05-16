@@ -119,6 +119,7 @@ async def on_message(message):
 		embed.title = "Help"
 		embed.add_field(name = "`d!help`", value="Shows this help message",inline=False)
 		embed.add_field(name = "`d!play song_name [- artist]`", value="Plays/Queues a song.",inline=False)
+		embed.add_field(name = "`d!info song_name [- artist]`", value="Search and show a song's information.",inline=False)
 		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
 		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
 		embed.add_field(name = "`d!skip`", value="Skips the current song",inline=False)
@@ -248,4 +249,49 @@ async def on_message(message):
 			info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 			info.set_image(url = cover)
 			await message.channel.send(content="Added to queue",embed = info)
+	if message.content.startswith('d!info'):
+		deez.initDeezerApi()
+		content = message.content[len('d!info'):]
+		data = None
+		if '-' in content:
+			title = content.split('-')[0]
+			artist = content[len(title)+1::]
+		else:
+			title,artist = content,None
+			if len(title.strip()) == 0:
+				return
+		track = deez.search(title,artist)
+		#print(track)
+		if len(track) == 0:
+			try:
+				res = google.findSong(title,artist)
+				if res:
+					trackid = deez.getDeezerUrlParts(res)['id']
+					track = deez.searchFromID(trackid)
+					if not track:
+						raise ValueError
+				else:
+					raise ValueError
+			
+			except ValueError:
+				await message.channel.send("Sorry, I can't find that track.")
+				return
+		else:
+			track = track[0]
+		trackid = track['id']
+		title = track['title']
+		artist = track['artist']['name']
+		album = track['album']['title']
+		cover = track['album']['cover_xl']
+		copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
+		info = discord.Embed()
+		info.title = title
+		info.add_field(name = "Artist",value = artist)
+		if len(album) > 0:
+			info.add_field(name = "Album",value = album)
+		if len(copyright) > 0:
+			info.add_field(name = "Copyright",value = copyright)
+		info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
+		info.set_image(url = cover)
+		await message.channel.send(content="May this be the song you requested?",embed = info)
 cl.run('***REMOVED***')
