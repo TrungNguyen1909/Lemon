@@ -4,6 +4,7 @@ from random import shuffle
 import re
 import asyncio
 import deez
+import google
 cl = discord.Client()
 gq = {}
 class mServer():
@@ -200,19 +201,31 @@ async def on_message(message):
 		content = message.content[len('d!play'):]
 		data = None
 		if '-' in content:
-			track = content.split('-')[0]
-			artist = content[len(track)+1::]
+			title = content.split('-')[0]
+			artist = content[len(title)+1::]
 		else:
-			track,artist = content,None
-			if len(track.strip()) == 0:
+			title,artist = content,None
+			if len(title.strip()) == 0:
 				if not client.playing:
 					await processTrack(client)
-		track = deez.search(track,artist)
+		track = deez.search(title,artist)
 		#print(track)
 		if len(track) == 0:
-			await message.channel.send("Sorry, I can't find that track.")
-			return
-		track = track[0]
+			try:
+				res = google.findSong(title,artist)
+				if res:
+					trackid = deez.getDeezerUrlParts(res)['id']
+					track = deez.searchFromID(trackid)
+					if not track:
+						raise ValueError
+				else:
+					raise ValueError
+			
+			except ValueError:
+				await message.channel.send("Sorry, I can't find that track.")
+				return
+		else:
+			track = track[0]
 		track['channel'] = message.channel
 		track['voice'] = message.author.voice.channel
 		client.queue.put(track)
