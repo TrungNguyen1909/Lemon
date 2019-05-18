@@ -1,5 +1,6 @@
 import discord
 from queue import Queue
+from collections import deque
 from random import shuffle
 import re
 import asyncio
@@ -9,7 +10,7 @@ cl = discord.Client()
 gq = {}
 class mServer():
 	def __init__(self):
-		self.queue = Queue()
+		self.queue = deque()
 		self.looping = False
 		self.playing = False
 		self.np = None
@@ -29,7 +30,7 @@ def sendLyrics(client,line):
 def stream_ended(client,leave=False):
 	if client.looping:
 		if client.np:
-			client.queue.put(client.np)
+			client.queue.append(client.np)
 			client.np = None
 	print("Stream ended")
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
@@ -41,15 +42,15 @@ def stream_ended(client,leave=False):
 		client.playing = False
 		if hasattr(client,'placeholder'):
 			client.placeholder = None
-		if hasattr(client,"LM") and client.queue.qsize()==0:
+		if hasattr(client,"LM") and len(client.queue)==0:
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),cl.loop)
 		asyncio.run_coroutine_threadsafe(cl.change_presence(activity=discord.Activity()),cl.loop)
 async def processTrack(client):
-	if not client.queue or client.queue.qsize()==0:
+	if not client.queue or len(client.queue)==0:
 		await message.channel.send("Empty music queue")
 		return
 	print("Processing track on top of the queue")
-	track = client.queue.get()
+	track = client.queue.popleft()
 	client.np = track	
 	trackid = track['id']
 	title = track['title']
@@ -144,7 +145,7 @@ async def on_message(message):
 	if message.content.startswith('d!stop'):
 		stream_ended(client,leave = True)
 		while not client.queue.empty():
-			client.queue.get()
+			client.queue.popleft()
 		await message.channel.send("Stopped playing music and destroyed queue.")
 	if message.content.startswith('d!pause'):
 		if hasattr(client,"voiceclient"):
@@ -155,13 +156,13 @@ async def on_message(message):
 		else:
 			await processTrack(client)
 	if message.content.startswith('d!queue'):
-		if client.queue.qsize()==0:
+		if len(client.queue)==0:
 			await message.channel.send("Empty music queue")
 			return
 		embed = discord.Embed()
 		embed.title = "Music Queue"
 		i = 1
-		for item in client.queue.queue:
+		for item in client.queue:
 			embed.add_field(name = "{}.".format(i),value = "{} - {}".format(item['title'],item['artist']['name']),inline=False)
 			i += 1
 		await message.channel.send(content=None,embed=embed)
@@ -206,7 +207,7 @@ async def on_message(message):
 			track['channel'] = message.channel
 			track['voice'] = message.author.voice.channel
 			track['album'] = album
-			client.queue.put(track)
+			client.queue.append(track)
 		if not client.playing:
 			await processTrack(client)
 	if message.content.startswith('d!play'):
@@ -244,7 +245,7 @@ async def on_message(message):
 			track = track[0]
 		track['channel'] = message.channel
 		track['voice'] = message.author.voice.channel
-		client.queue.put(track)
+		client.queue.append(track)
 		if not client.playing:
 			await processTrack(client)
 		else:
