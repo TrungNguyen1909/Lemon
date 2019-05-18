@@ -36,7 +36,7 @@ def stream_ended(client,leave=False):
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
 	if hasattr(client,"LM"):
 		asyncio.run_coroutine_threadsafe(client.LM.unpin(),cl.loop)
-	if not client.queue.empty() and not leave:
+	if len(client.queue) and not leave:
 		asyncio.run_coroutine_threadsafe(processTrack(client),cl.loop)
 	else:
 		client.playing = False
@@ -144,8 +144,7 @@ async def on_message(message):
 		stream_ended(client)
 	if message.content.startswith('d!stop'):
 		stream_ended(client,leave = True)
-		while not client.queue.empty():
-			client.queue.popleft()
+		client.queue = deque()
 		await message.channel.send("Stopped playing music and destroyed queue.")
 	if message.content.startswith('d!pause'):
 		if hasattr(client,"voiceclient"):
