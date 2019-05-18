@@ -122,6 +122,7 @@ async def on_message(message):
 		embed.add_field(name = "`d!info song_name [- artist]`", value="Search and show a song's information.",inline=False)
 		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
 		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
+		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
 		embed.add_field(name = "`d!skip`", value="Skips the current song",inline=False)
 		embed.add_field(name = "`d!pause`", value="Pauses the current song",inline=False)
 		embed.add_field(name = "`d!resume`", value="Resume the paused song",inline=False)
@@ -164,6 +165,20 @@ async def on_message(message):
 			embed.add_field(name = "{}.".format(i),value = "{} - {}".format(item['title'],item['artist']['name']),inline=False)
 			i += 1
 		await message.channel.send(content=None,embed=embed)
+	if message.content.startswith('d!shuffle'):
+			if len(client.queue)==0:
+				await message.channel.send("Empty music queue")
+				return
+			l = list(client.queue)
+			shuffle(l)
+			client.queue = deque(l)
+			embed = discord.Embed()
+			embed.title = "Music Queue"
+			i = 1
+			for item in client.queue:
+				embed.add_field(name = "{}.".format(i),value = "{} - {}".format(item['title'],item['artist']['name']),inline=False)
+				i += 1
+			await message.channel.send(content=None,embed=embed)
 	if message.content.startswith('d!album'):
 		if not message.author.voice or not message.author.voice.channel:
 			await message.channel.send("You must be in a voice channel to play music")
