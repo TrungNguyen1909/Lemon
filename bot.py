@@ -45,13 +45,7 @@ def stream_ended(client,leave=False):
 		if hasattr(client,"LM") and len(client.queue)==0:
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),cl.loop)
 		asyncio.run_coroutine_threadsafe(cl.change_presence(activity=discord.Activity()),cl.loop)
-async def processTrack(client):
-	if not client.queue or len(client.queue)==0:
-		await message.channel.send("Empty music queue")
-		return
-	print("Processing track on top of the queue")
-	track = client.queue.popleft()
-	client.np = track	
+async def printTrack(client,track,mContent = None):
 	trackid = track['id']
 	title = track['title']
 	artist = track['artist']['name']
@@ -68,7 +62,21 @@ async def processTrack(client):
 		info.add_field(name = "Copyright",value = copyright)
 	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
-	await track['channel'].send(content = "Now playing:",embed = info)
+	await track['channel'].send(content = mContent,embed = info)
+async def processTrack(client):
+	if not client.queue or len(client.queue)==0:
+		await message.channel.send("Empty music queue")
+		return
+	print("Processing track on top of the queue")
+	track = client.queue.popleft()
+	client.np = track	
+	trackid = track['id']
+	title = track['title']
+	artist = track['artist']['name']
+	album = track['album']['title']
+	cover = track['album']['cover_xl']
+	duration = track['duration']
+	await printTrack(client, track,mContent = "Now playing:")
 	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_xl'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await cl.change_presence(activity=act)
@@ -120,6 +128,7 @@ async def on_message(message):
 		embed.title = "Help"
 		embed.add_field(name = "`d!help`", value="Shows this help message",inline=False)
 		embed.add_field(name = "`d!play song_name [- artist]`", value="Plays/Queues a song.",inline=False)
+		embed.add_field(name = "`d!np`", value="Show the song that's currently being played.",inline=False)
 		embed.add_field(name = "`d!info song_name [- artist]`", value="Search and show a song's information.",inline=False)
 		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
 		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
@@ -248,22 +257,12 @@ async def on_message(message):
 		if not client.playing:
 			await processTrack(client)
 		else:
-			trackid = track['id']
-			title = track['title']
-			artist = track['artist']['name']
-			album = track['album']['title']
-			cover = track['album']['cover_xl']
-			copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
-			info = discord.Embed()
-			info.title = title
-			info.add_field(name = "Artist",value = artist)
-			if len(album) > 0:
-				info.add_field(name = "Album",value = album)
-			if len(copyright) > 0:
-				info.add_field(name = "Copyright",value = copyright)
-			info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
-			info.set_image(url = cover)
-			await message.channel.send(content="Added to queue",embed = info)
+			await printTrack(client, track,mContent = "Added to Queue")
+	if message.content.startswith("d!np"):
+		if client.np:
+			await printTrack(client,client.np,mContent = "Now playing:")
+		else:
+			await message.channel.send("I'm currently not playing any song.")
 	if message.content.startswith('d!info'):
 		deez.initDeezerApi()
 		content = message.content[len('d!info'):]
@@ -293,20 +292,5 @@ async def on_message(message):
 				return
 		else:
 			track = track[0]
-		trackid = track['id']
-		title = track['title']
-		artist = track['artist']['name']
-		album = track['album']['title']
-		cover = track['album']['cover_xl']
-		copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
-		info = discord.Embed()
-		info.title = title
-		info.add_field(name = "Artist",value = artist)
-		if len(album) > 0:
-			info.add_field(name = "Album",value = album)
-		if len(copyright) > 0:
-			info.add_field(name = "Copyright",value = copyright)
-		info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
-		info.set_image(url = cover)
-		await message.channel.send(content="May this be the song you requested?",embed = info)
+			await printTrack(client, track, mContent = "May this be the song I requested?")
 cl.run('***REMOVED***')
