@@ -126,18 +126,18 @@ async def on_message(message):
 	if message.content.startswith('d!help'):
 		embed = discord.Embed()
 		embed.title = "Help"
-		embed.add_field(name = "`d!help`", value="Shows this help message",inline=False)
-		embed.add_field(name = "`d!play song_name [- artist]`", value="Plays/Queues a song.",inline=False)
+		embed.add_field(name = "`d!help`", value="Show this help message",inline=False)
+		embed.add_field(name = "`d!play [song_name [- artist]]`", value="Play/Queue a song or resume a left queue.",inline=False)
 		embed.add_field(name = "`d!np`", value="Show the song that's currently being played.",inline=False)
-		embed.add_field(name = "`d!info song_name [- artist]`", value="Search and show a song's information.",inline=False)
-		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
-		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
+		embed.add_field(name = "`d!info song_name [- artist]`", value="Show a song's information.",inline=False)
+		embed.add_field(name = "`d!album album_name [- artist]`", value="Play/Queue an album or resume a left queue.",inline=False)
+		embed.add_field(name = "`d!queue`", value="Show current music queue",inline=False)
 		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
-		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skips the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
-		embed.add_field(name = "`d!pause`", value="Pauses the current song",inline=False)
-		embed.add_field(name = "`d!resume`", value="Resume the paused song",inline=False)
-		embed.add_field(name = "`d!leave`", value="Skips the current song and leaves the current voice channel.",inline=False)
-		embed.add_field(name = "`d!stop`", value="Stops the music session, destroy the whole queue",inline=False)
+		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skip the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
+		embed.add_field(name = "`d!pause`", value="Pause the current song",inline=False)
+		embed.add_field(name = "`d!resume`", value="Resume the paused song or resume a left queue",inline=False)
+		embed.add_field(name = "`d!leave`", value="Skip the current song and leaves the current voice channel.",inline=False)
+		embed.add_field(name = "`d!stop`", value="Stop the music session, destroy the whole queue",inline=False)
 		await message.channel.send(embed = embed)
 		return
 	if message.content.startswith('d!leave'):
@@ -145,7 +145,7 @@ async def on_message(message):
 		await message.channel.send("Left voice channel and skipped song")
 		return 
 	if message.content.startswith('d!loop'):
-		client.looping =not client.looping
+		client.looping = not client.looping
 		if client.looping:
 			await message.channel.send("Looping enabled")
 		else:
