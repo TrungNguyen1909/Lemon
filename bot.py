@@ -27,9 +27,9 @@ def sendLyrics(client,line):
 		else:
 			text += '\n\n'+et+'\n'
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),cl.loop)
-def stream_ended(client,leave=False):
+def stream_ended(client,skip = False,leave=False):
 	if client.looping:
-		if client.np:
+		if client.np and not skip:
 			client.queue.append(client.np)
 			client.np = None
 	print("Stream ended")
@@ -133,7 +133,7 @@ async def on_message(message):
 		embed.add_field(name = "`d!album album_name [- artist]`", value="Plays/Queues an album",inline=False)
 		embed.add_field(name = "`d!queue`", value="Shows current music queue",inline=False)
 		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
-		embed.add_field(name = "`d!skip`", value="Skips the current song",inline=False)
+		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skips the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
 		embed.add_field(name = "`d!pause`", value="Pauses the current song",inline=False)
 		embed.add_field(name = "`d!resume`", value="Resume the paused song",inline=False)
 		embed.add_field(name = "`d!leave`", value="Skips the current song and leaves the current voice channel.",inline=False)
@@ -152,7 +152,10 @@ async def on_message(message):
 			await message.channel.send("Looping disabled")
 		return
 	if message.content.startswith('d!skip'):
-		stream_ended(client)
+		if 'noloop' in message.content or 'nr' in message.content or 'norepeat' in message.content:
+			stream_ended(client,skip=True)
+		else:
+			stream_ended(client)
 		return
 	if message.content.startswith('d!stop'):
 		stream_ended(client,leave = True)
