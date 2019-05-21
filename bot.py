@@ -130,7 +130,7 @@ async def on_message(message):
 		embed.add_field(name = "`d!play song_name [- artist]`", value="Play/Queue a song.`",inline=False)
 		embed.add_field(name = "`d!np`", value="Show the song that's currently being played.",inline=False)
 		embed.add_field(name = "`d!info song_name [- artist]`", value="Show a song's information.",inline=False)
-		embed.add_field(name = "`d!album album_name [- artist]`", value="Play/Queue an album.",inline=False)
+		embed.add_field(name = "`d!album album_name [- artist] [-shuffle]`", value="Play/Queue an album.",inline=False)
 		embed.add_field(name = "`d!queue`", value="Show current music queue",inline=False)
 		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
 		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skip the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
@@ -208,6 +208,10 @@ async def on_message(message):
 			return
 		deez.initDeezerApi()
 		content = message.content[len('d!album'):]
+		shuff = False
+		if '-shuffle' in content:
+			shuff = True
+			content = content.replace('-shuffle','')
 		data = None
 		if '-' in content:
 			album = content.split('-')[0]
@@ -236,6 +240,8 @@ async def on_message(message):
 		albuminfo = processAlbum(client, album)
 		await message.channel.send(content="Album:",embed = albuminfo[0])
 		trackList = albuminfo[1]
+		if shuff:
+			shuffle(trackList)
 		for track in trackList:
 			track['channel'] = message.channel
 			track['voice'] = message.author.voice.channel
