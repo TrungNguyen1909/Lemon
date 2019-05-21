@@ -32,7 +32,7 @@ def stream_ended(client,skip = False,leave=False):
 		if client.np and not skip:
 			client.queue.append(client.np)
 			client.np = None
-	print("Stream ended")
+	print("Stream ended.")
 	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
 	if hasattr(client,"LM"):
 		asyncio.run_coroutine_threadsafe(client.LM.unpin(),cl.loop)
@@ -65,7 +65,7 @@ async def printTrack(client,track,mContent = None):
 	await track['channel'].send(content = mContent,embed = info)
 async def processTrack(client):
 	if not client.queue or len(client.queue)==0:
-		await message.channel.send("Empty music queue")
+		#await message.channel.send("Empty music queue")
 		return
 	print("Processing track on top of the queue")
 	track = client.queue.popleft()
@@ -127,10 +127,10 @@ async def on_message(message):
 		embed = discord.Embed()
 		embed.title = "Help"
 		embed.add_field(name = "`d!help`", value="Show this help message",inline=False)
-		embed.add_field(name = "`d!play [song_name [- artist]]`", value="Play/Queue a song or resume a left queue.",inline=False)
+		embed.add_field(name = "`d!play song_name [- artist]`", value="Play/Queue a song.`",inline=False)
 		embed.add_field(name = "`d!np`", value="Show the song that's currently being played.",inline=False)
 		embed.add_field(name = "`d!info song_name [- artist]`", value="Show a song's information.",inline=False)
-		embed.add_field(name = "`d!album album_name [- artist]`", value="Play/Queue an album or resume a left queue.",inline=False)
+		embed.add_field(name = "`d!album album_name [- artist]`", value="Play/Queue an album.",inline=False)
 		embed.add_field(name = "`d!queue`", value="Show current music queue",inline=False)
 		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
 		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skip the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
@@ -170,6 +170,9 @@ async def on_message(message):
 		if hasattr(client,"voiceclient"):
 			client.voiceclient.resume()
 		else:
+			if not client.queue or len(client.queue)==0:
+				await message.channel.send("Empty music queue")
+				return
 			await processTrack(client)
 		return
 	if message.content.startswith('d!queue'):
@@ -212,8 +215,7 @@ async def on_message(message):
 		else:
 			album,artist = content,None
 			if len(album.strip()) == 0:
-				if not client.playing:
-					await processTrack(client)
+				return
 		albums = deez.searchAlbum(album,artist)
 		if len(albums) == 0:
 			try:
@@ -287,8 +289,7 @@ async def on_message(message):
 		else:
 			title,artist = content,None
 			if len(title.strip()) == 0:
-				if not client.playing:
-					await processTrack(client)
+				return
 		track = deez.search(title,artist)
 		#print(track)
 		if len(track) == 0:
