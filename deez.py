@@ -236,7 +236,7 @@ class FFMpeg:
 		self.end.wait()
 		print("Stream ended. House-keeping.")
 		self.new_time.set()
-		self.kill()
+		threading._start_new_thread(self.kill,())
 	def kill(self):
 		if not self.proc:
 			return

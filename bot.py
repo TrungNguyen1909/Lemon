@@ -33,7 +33,8 @@ def stream_ended(client,skip = False,leave=False):
 			client.queue.append(client.np)
 			client.np = None
 	print("Stream ended.")
-	asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
+	if hasattr(client, 'voiceclient'):
+		asyncio.run_coroutine_threadsafe(client.voiceclient.disconnect(),cl.loop)
 	if hasattr(client,"LM"):
 		asyncio.run_coroutine_threadsafe(client.LM.unpin(),cl.loop)
 	if len(client.queue) and not leave:
@@ -50,7 +51,7 @@ async def printTrack(client,track,mContent = None):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_xl']
+	cover = track['album']['cover_medium']
 	duration = track['duration']
 	copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 	info = discord.Embed()
@@ -60,7 +61,6 @@ async def printTrack(client,track,mContent = None):
 		info.add_field(name = "Album",value = album)
 	if len(copyright) > 0:
 		info.add_field(name = "Copyright",value = copyright)
-	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	info.set_image(url = cover)
 	await track['channel'].send(content = mContent,embed = info)
 async def processTrack(client):
@@ -74,10 +74,10 @@ async def processTrack(client):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_xl']
+	cover = track['album']['cover_medium']
 	duration = track['duration']
 	await printTrack(client, track,mContent = "Now playing:")
-	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_xl'],type=discord.ActivityType.playing)
+	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
@@ -100,7 +100,7 @@ def processAlbum(client,album):
 	albumid = album['id']
 	title = album['title']
 	artist = album['artist']['name']
-	cover = album['cover_xl']
+	cover = album['cover_medium']
 	info = discord.Embed()
 	info.title = title
 	info.add_field(name = "Artist",value = artist)
@@ -110,7 +110,6 @@ def processAlbum(client,album):
 	for track in tracklist:
 		l += track['title']+'\n'
 	info.add_field(name="Tracks",value=l)
-	info.add_field(name = "NOTICE", value = "Remember that the artists and studios put a lot of work into making music - purchase music to support them.")
 	return (info,tracklist)
 @cl.event
 async def on_ready():
