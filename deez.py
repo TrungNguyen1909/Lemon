@@ -203,7 +203,7 @@ class FFMpeg:
 			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 				#print(line['text'])
 				if self.callback:
-					self.callback(**{'client':self.client,'line':line})
+					threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
 				self.lyrics.popleft()
 				if len(self.lyrics) == 0:
 					return
@@ -253,7 +253,6 @@ class FFMpeg:
 			return
 		self.proc.kill()
 		print("Killing ffmpeg")
-		self.proc.communicate(timeout=2)
 		self.proc = None
 		print("ffmpeg killed")
 def stream(ffmpeg,trackid):
