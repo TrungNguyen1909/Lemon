@@ -180,7 +180,7 @@ class FFMpeg:
 		self.new_time = threading.Event()
 		self.client = client
 		threading._start_new_thread(self.callbackLyrics,())
-		threading._start_new_thread(self.cleanup,())
+		threading._start_new_thread(self._cleanup,())
 		'''
 		fcntl.fcntl(
 				self.stdout.fileno(),
@@ -223,38 +223,43 @@ class FFMpeg:
 				asyncio.create_task(self.after(client = self.client))
 		return data #+ bytearray([0]*(size-len(data)))
 	def write(self,data):
-		r = self.proc.stdin.write(data)
-		self.proc.stdin.flush()
+		if not self.proc:
+			self.end.set()
+			return None
+		try:
+			r = self.proc.stdin.write(data)
+			self.proc.stdin.flush()
+		except BrokenPipeError:
+			return None
 		return r
 	def alive(self):
 		return self.proc.poll() is not None
 	def close(self):
-		self.proc.stdin.close()
+		if self.proc:
+			self.proc.stdin.close()
 	def stop(self):
 		self.end.set()
-	def cleanup(self):
+	def _cleanup(self):
+		print("Waiting for stream.")
 		self.end.wait()
 		print("Stream ended. House-keeping.")
 		self.new_time.set()
 		threading._start_new_thread(self.kill,())
+	def cleanup(self,*args,**kwargs):
+		print("Stream cleanup requested. Ending stream.")
+		self.end.set()
 	def kill(self):
 		if not self.proc:
 			return
+		self.proc.kill()
 		print("Killing ffmpeg")
-		try:
-			os.killpg(os.getpgid(self.proc.pid),signal.SIGKILL)
-		except:
-			pass
-		finally:
-			try:
-				self.proc.communicate(timeout=2)
-			except:
-				pass
-			self.proc = None
-			print("ffmpeg killed")
+		self.proc.communicate(timeout=2)
+		self.proc = None
+		print("ffmpeg killed")
 def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
-		ffmpeg.write(chunk)
+		if not ffmpeg.write(chunk):
+			break
 	ffmpeg.close()
 def streamTrack(trackid,client = None,readCallback=None,lyrics=None,after = None):
 	ffmpeg = FFMpeg(client = client,callback=readCallback,lyrics =lyrics,after=after)

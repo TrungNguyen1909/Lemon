@@ -77,7 +77,7 @@ async def processTrack(client):
 	cover = track['album']['cover_medium']
 	duration = track['duration']
 	await printTrack(client, track,mContent = "Now playing:")
-	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_small'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
+	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_medium'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
@@ -95,7 +95,7 @@ async def processTrack(client):
 		client.playing = True
 		client.voiceclient = await chan.connect()
 		client.placeholder = "{} - {}".format(title,artist)
-		client.voiceclient.play(discord.PCMAudio(stream),after=None)
+		client.voiceclient.play(discord.PCMAudio(stream),after=stream.cleanup)
 def processAlbum(client,album):
 	albumid = album['id']
 	title = album['title']
