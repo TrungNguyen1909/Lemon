@@ -1,6 +1,7 @@
 CHUNK_SIZE = 2048
 import io
 import os
+import signal
 import requests
 from math import floor
 from random import random
@@ -202,14 +203,14 @@ class FFMpeg:
 			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
 				#print(line['text'])
 				if self.callback:
-					threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
+					self.callback(**{'client':self.client,'line':line})
 				self.lyrics.popleft()
 				if len(self.lyrics) == 0:
 					return
 				line = self.lyrics[0]
 				t = line['time']
 	def __del__(self):
-		self.proc.terminate()
+		self.stop()
 	def read(self,size=3840):
 		data =  self.proc.stdout.read(size)
 		self.time = (datetime.datetime.combine(datetime.date(1,1,1),self.time) + datetime.timedelta(milliseconds=20)).time()
@@ -235,12 +236,22 @@ class FFMpeg:
 		self.end.wait()
 		print("Stream ended. House-keeping.")
 		self.new_time.set()
-		return
-#		print("Killing ffmpeg")
-#		self.end = True
-#		self.proc.kill()
-#		print("ffmpeg killed")
-		#threading._start_new_thread(self.proc.kill,())
+		self.kill()
+	def kill(self):
+		if not self.proc:
+			return
+		print("Killing ffmpeg")
+		try:
+			os.killpg(os.getpgid(self.proc.pid),signal.SIGKILL)
+		except:
+			pass
+		finally:
+			try:
+				self.proc.communicate(timeout=2)
+			except:
+				pass
+			self.proc = None
+			print("ffmpeg killed")
 def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
 		ffmpeg.write(chunk)
@@ -249,8 +260,8 @@ def streamTrack(trackid,client = None,readCallback=None,lyrics=None,after = None
 	ffmpeg = FFMpeg(client = client,callback=readCallback,lyrics =lyrics,after=after)
 	threading._start_new_thread(stream,(ffmpeg,trackid))
 	return ffmpeg
-async def sendLyrics(text):
-	print(text)
+def sendLyrics(line,**kwargs):
+	print(line['text'])
 if __name__ =="__main__":
 	import pyaudio
 	initDeezerApi()
@@ -259,8 +270,8 @@ if __name__ =="__main__":
 												channels=2,
 												rate=48000,
 												output=True)
-	track = "Faded"
-	artist = "Alan Walker"
+	track = "Vanilla Twilight"
+	artist = "Owl City"
 	track = search(track,artist)
 	#print(track)
 	track = track[0]
@@ -269,12 +280,12 @@ if __name__ =="__main__":
 	artist = track['artist']['name']
 	album = track['album']['title']
 	cover = track['album']['cover_medium']
-	lyrics = getlyrics(title, album, artist)
+	duration = track['duration']
+	lyrics = getlyrics(title, album, artist,duration)
 	if lyrics['has_lrc']:
 		s = streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],client = None)
 	else:
 		s = streamTrack(trackid)
-	s.cleanup()
 	while True:
 		c = s.read()
 		if c  and len(c)>0:
