@@ -6,7 +6,7 @@ def findSong(title, artist='',validator = None):
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36',
 			'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 		}
-	resp  = session.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com/track'.format(title,artist)})
+	resp  = session.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist)})
 	soup = BeautifulSoup(resp.text,'lxml')
 	name_link = soup.find_all('h3', class_='LC20lb')
 	link = soup.find_all('cite')
@@ -16,7 +16,7 @@ def findSong(title, artist='',validator = None):
 		if validator:
 			if validator(l.text):
 				return l.text
-		else:
+		elif 'track' in l.text:
 			return l.text
 	return None
 def findAlbum(title, artist='',validator = None):
@@ -25,7 +25,7 @@ def findAlbum(title, artist='',validator = None):
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36',
 			'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 		}
-	resp  = session.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com/album'.format(title,artist)})
+	resp  = session.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist)})
 	soup = BeautifulSoup(resp.text,'lxml')
 	name_link = soup.find_all('h3', class_='LC20lb')
 	link = soup.find_all('cite')
@@ -35,7 +35,7 @@ def findAlbum(title, artist='',validator = None):
 		if validator:
 			if validator(l.text):
 				return l.text
-		else:
+		elif 'album' in l.text:
 			return l.text
 	return None
 if __name__ == "__main__":
