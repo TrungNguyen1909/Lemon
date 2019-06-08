@@ -356,6 +356,6 @@ async def on_message(message):
 		else:
 			track = track[0]
 			track['channel'] = message.channel
-			await printTrack(client, track, mContent = "May this be the song I requested?")
+			await printTrack(client, track, mContent = "May this be the song you requested?")
 		return
 cl.run('***REMOVED***')
