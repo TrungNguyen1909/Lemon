@@ -3,3 +3,4 @@ PyCrypto
 beautifulsoup4
 lxml
 discord.py[voice]==1.0.1
+python-dotenv

@@ -6,6 +6,8 @@ import re
 import asyncio
 import deez
 import google
+import os
+from dotenv import load_dotenv
 cl = discord.Client()
 gq = {}
 class mServer():
@@ -358,4 +360,5 @@ async def on_message(message):
 			track['channel'] = message.channel
 			await printTrack(client, track, mContent = "May this be the song you requested?")
 		return
-cl.run('***REMOVED***')
+load_dotenv()
+cl.run(os.getenv('BOT_TOKEN'))

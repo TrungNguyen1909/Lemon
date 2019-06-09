@@ -22,6 +22,8 @@ import urllib3
 from lyrics import *
 urllib3.disable_warnings()
 from urllib.parse import quote_plus
+from dotenv import load_dotenv
+load_dotenv()
 httpHeaders = {
 		'user-agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
 		'cache-control':   'max-age=0',
@@ -66,7 +68,7 @@ musicQualities = {
 selectedMusicQuality = musicQualities['MP3_128'];
 session = requests.Session()
 session.headers = httpHeaders
-session.cookies['arl']='***REMOVED***'
+session.cookies['arl']=os.getenv('DEEZER_ARL')
 def getApiCid():
 	return floor(1e9 * random())
 def initDeezerApi():
@@ -274,8 +276,8 @@ if __name__ =="__main__":
 												channels=2,
 												rate=48000,
 												output=True)
-	track = "Vanilla Twilight"
-	artist = "Owl City"
+	track = "What is love?"
+	artist = "Twice"
 	track = search(track,artist)
 	#print(track)
 	track = track[0]

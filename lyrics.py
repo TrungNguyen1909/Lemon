@@ -1,7 +1,9 @@
 import requests
 import json
-
-USER_TOKEN = '***REMOVED***'
+import os
+from dotenv import load_dotenv
+load_dotenv()
+USER_TOKEN = os.getenv('MXM_TOKEN')
 def getlyricsTranslation(track_id):
 	params = (
 			('commontrack_id',str(track_id)),
@@ -87,3 +89,4 @@ def getlyrics(track,album,artist,duration = None):
 if __name__ == "__main__":
 	getlyrics("The best thing i ever did", "The year of YES", artist = "TWICE")
 	getlyricsTranslation(90555411)
+
