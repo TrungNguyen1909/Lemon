@@ -43,6 +43,7 @@ def stream_ended(client,skip = False,leave=False):
 		asyncio.run_coroutine_threadsafe(processTrack(client),cl.loop)
 	else:
 		client.playing = False
+		client.np = None
 		if hasattr(client,'placeholder'):
 			client.placeholder = None
 		if hasattr(client,"LM") and len(client.queue)==0:
