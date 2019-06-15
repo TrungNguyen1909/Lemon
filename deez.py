@@ -129,7 +129,7 @@ def decryptTrack(trackInfos,trackBuffer):
 		yield decrypted
 	return
 def downloadTrack(trackInfos,trackQualityId):
-	trackDownloadUrl = getTrackDownloadUrl(trackInfos, trackQualityId)	
+	trackDownloadUrl = getTrackDownloadUrl(trackInfos, trackQualityId)
 	return decryptTrack(trackInfos,session.get(trackDownloadUrl,headers=httpHeaders,stream=True).iter_content(chunk_size=2048))
 	
 def downloadSingleTrack(trackid):
