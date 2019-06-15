@@ -66,6 +66,26 @@ async def printTrack(client,track,mContent = None):
 		info.add_field(name = "Copyright",value = copyright)
 	info.set_image(url = cover)
 	await track['channel'].send(content = mContent,embed = info)
+def findTrack(title,artist):
+	track =	google.findSong(title,artist)
+	if not track:
+		res = deez.search(title,artist)
+		if len(res)>0:
+			track = res[0]
+	else:
+		trackid = deez.getDeezerUrlParts(track)['id']
+		track = deez.searchTrackFromID(trackid)
+	return track
+def findAlbum(title,artist):
+	album =	google.findAlbum(title,artist)
+	if not album:
+		res = deez.searchAlbum(title,artist)
+		if len(res)>0:
+			album = res[0]
+	else:
+		albumid = deez.getDeezerUrlParts(album)['id']
+		album = deez.searchAlbumFromID(albumid)
+	return album
 async def processTrack(client):
 	if not client.queue or len(client.queue)==0:
 		#await message.channel.send("Empty music queue")
@@ -129,7 +149,7 @@ async def on_message(message):
 		embed = discord.Embed()
 		embed.title = "Help"
 		embed.add_field(name = "`d!help`", value="Show this help message",inline=False)
-		embed.add_field(name = "`d!play song_name [- artist]`", value="Play/Queue a song.`",inline=False)
+		embed.add_field(name = "`d!play [song_name [- artist]]`", value="Play/Queue a song or resume the queue.`",inline=False)
 		embed.add_field(name = "`d!np`", value="Show the song that's currently being played.",inline=False)
 		embed.add_field(name = "`d!info song_name [- artist]`", value="Show a song's information.",inline=False)
 		embed.add_field(name = "`d!album album_name [- artist] [-shuffle]`", value="Play/Queue an album.",inline=False)
@@ -222,23 +242,10 @@ async def on_message(message):
 			album,artist = content,None
 			if len(album.strip()) == 0:
 				return
-		albums = deez.searchAlbum(album,artist)
-		if len(albums) == 0:
-			try:
-				res = google.findAlbum(album,artist)
-				if res:
-					albumid = deez.getDeezerUrlParts(res)['id']
-					album = deez.searchAlbumFromID(albumid)
-					if not album:
-						raise ValueError
-				else:
-					raise ValueError
-			
-			except ValueError:
-				await message.channel.send("Sorry, I can't find that track.")
-				return
-		else:
-			album = albums[0]
+		album = findAlbum(album,artist)
+		if not album:
+			await message.channel.send("Sorry, I can't find that album.")
+			return
 		albuminfo = processAlbum(client, album)
 		await message.channel.send(content="Album:",embed = albuminfo[0])
 		trackList = albuminfo[1]
@@ -262,25 +269,11 @@ async def on_message(message):
 		else:
 			album,artist = content,None
 			if len(album.strip()) == 0:
-				if not client.playing:
-					await processTrack(client)
-		albums = deez.searchAlbum(album,artist)
-		if len(albums) == 0:
-			try:
-				res = google.findAlbum(album,artist)
-				if res:
-					albumid = deez.getDeezerUrlParts(res)['id']
-					album = deez.searchAlbumFromID(albumid)
-					if not album:
-						raise ValueError
-				else:
-					raise ValueError
-			
-			except ValueError:
-				await message.channel.send("Sorry, I can't find that track.")
 				return
-		else:
-			album = albums[0]
+		album = findAlbum(album,artist)
+		if not album:
+			await message.channel.send("Sorry, I can't find that album.")
+			return
 		albuminfo = processAlbum(client, album)
 		await message.channel.send(content="May this be the album you requested?",embed = albuminfo[0])
 		return
@@ -297,25 +290,15 @@ async def on_message(message):
 		else:
 			title,artist = content,None
 			if len(title.strip()) == 0:
-				return
-		track = deez.search(title,artist)
-		#print(track)
-		if len(track) == 0:
-			try:
-				res = google.findSong(title,artist)
-				if res:
-					trackid = deez.getDeezerUrlParts(res)['id']
-					track = deez.searchTrackFromID(trackid)
-					if not track:
-						raise ValueError
+				if client.playing or len(client.queue)==0:
+					return
 				else:
-					raise ValueError
-			
-			except ValueError:
-				await message.channel.send("Sorry, I can't find that track.")
-				return
-		else:
-			track = track[0]
+					await processTrack(client)
+					return
+		track = findTrack(title, artist)
+		if not track:
+			await message.channel.send("Sorry, I can't find that track.")
+			return
 		track['channel'] = message.channel
 		track['voice'] = message.author.voice.channel
 		client.queue.append(track)
@@ -340,24 +323,11 @@ async def on_message(message):
 			title,artist = content,None
 			if len(title.strip()) == 0:
 				return
-		track = deez.search(title,artist)
-		#print(track)
-		if len(track) == 0:
-			try:
-				res = google.findSong(title,artist)
-				if res:
-					trackid = deez.getDeezerUrlParts(res)['id']
-					track = deez.searchTrackFromID(trackid)
-					if not track:
-						raise ValueError
-				else:
-					raise ValueError
-			
-			except ValueError:
-				await message.channel.send("Sorry, I can't find that track.")
-				return
+		track = findTrack(title, artist)
+		if not track:
+			await message.channel.send("Sorry, I can't find that track.")
+			return
 		else:
-			track = track[0]
 			track['channel'] = message.channel
 			await printTrack(client, track, mContent = "May this be the song you requested?")
 		return
