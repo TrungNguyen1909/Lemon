@@ -68,7 +68,7 @@ async def printTrack(client,track,mContent = None):
 	await track['channel'].send(content = mContent,embed = info)
 def songValidator(url):
 	try:
-		urlparts = deez.getDeezerUrlParts(url)['id']
+		urlparts = deez.getDeezerUrlParts(url)
 		trackid = urlparts['id']
 		if urlparts['type'] != 'track':
 			return False
