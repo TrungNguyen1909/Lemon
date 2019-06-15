@@ -67,9 +67,15 @@ async def printTrack(client,track,mContent = None):
 	info.set_image(url = cover)
 	await track['channel'].send(content = mContent,embed = info)
 def songValidator(url):
-	trackid = deez.getDeezerUrlParts(url)['id']
-	track = deez.searchTrackFromID(trackid)
-	return track['preview'] !=''
+	try:
+		urlparts = deez.getDeezerUrlParts(url)['id']
+		trackid = urlparts['id']
+		if urlparts['type'] != 'track':
+			return False
+		track = deez.searchTrackFromID(trackid)
+		return track['preview'] !=''
+	except:
+		return False
 def findTrack(title,artist):
 	track =	google.findSong(title,artist,songValidator)
 	if not track:
