@@ -1,5 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+import os
+from dotenv import load_dotenv
+load_dotenv()
 gsession = requests.session()
 gsession.headers = {
 		'authority': 'www.google.com',
@@ -10,13 +13,14 @@ gsession.headers = {
 		'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 }
 gsession.get('https://www.google.com/')
+region = os.getenv('GOOGLE_REGION')
 def findSong(title, artist='',validator = None):
 	
 	resp = None
 	if artist is not None:
-		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist),'gl':'VN'})
+		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist),'gl':region})
 	else:
-		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':'VN'})
+		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
 	soup = BeautifulSoup(resp.text,'lxml')
 	name_link = soup.find_all('h3', class_='LC20lb')
 	link = soup.find_all('cite')
@@ -32,9 +36,9 @@ def findSong(title, artist='',validator = None):
 def findAlbum(title, artist='',validator = None):
 	resp = None
 	if artist is not None:
-		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist),'gl':'VN'})
+		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} - {} site:deezer.com'.format(title,artist),'gl':region})
 	else:
-		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} site:deezer.com'.format(title),'gl':'VN'})
+		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
 	soup = BeautifulSoup(resp.text,'lxml')
 	name_link = soup.find_all('h3', class_='LC20lb')
 	link = soup.find_all('cite')
