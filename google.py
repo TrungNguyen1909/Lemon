@@ -36,9 +36,9 @@ def findSong(title, artist='',validator = None):
 def findAlbum(title, artist='',validator = None):
 	resp = None
 	if artist is not None:
-		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} - {} site:deezer.com'.format(artist,title),'gl':region})
+		resp  = gsession.get('https://www.google.com.vn/search',params = {'q':'{} - {} site:deezer.com'.format(artist,title),'gl':region})
 	else:
-		resp  = gsession.get('https://google.com.vn/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
+		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
 	soup = BeautifulSoup(resp.text,'lxml')
 	name_link = soup.find_all('h3', class_='LC20lb')
 	link = soup.find_all('cite')
