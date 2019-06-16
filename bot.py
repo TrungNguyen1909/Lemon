@@ -73,7 +73,7 @@ def songValidator(url):
 		if urlparts['type'] != 'track':
 			return False
 		track = deez.searchTrackFromID(trackid)
-		return track['preview'] !=''
+		return track['preview'] !='' and len(track['available_countries'])>0
 	except:
 		return False
 def findTrack(title,artist):
