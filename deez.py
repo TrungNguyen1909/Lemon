@@ -133,6 +133,7 @@ def downloadTrack(trackInfos,trackQualityId):
 	return decryptTrack(trackInfos,session.get(trackDownloadUrl,headers=httpHeaders,stream=True).iter_content(chunk_size=2048))
 	
 def downloadSingleTrack(trackid):
+	initDeezerApi()
 	print(F"Starting download for trackid {trackid}")
 	if(False):
 		pass
