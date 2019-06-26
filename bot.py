@@ -49,12 +49,12 @@ def stream_ended(client,skip = False,leave=False):
 		if hasattr(client,"LM") and len(client.queue)==0:
 			asyncio.run_coroutine_threadsafe(client.LM.channel.send('Queue ended'),cl.loop)
 		asyncio.run_coroutine_threadsafe(cl.change_presence(activity=discord.Activity()),cl.loop)
-async def printTrack(client,track,mContent = None):
+async def printTrack(client,track,mContent = None, withCover = True):
 	trackid = track['id']
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_medium']
+	cover = track['album']['cover_xl']
 	duration = track['duration']
 	copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 	info = discord.Embed()
@@ -64,7 +64,8 @@ async def printTrack(client,track,mContent = None):
 		info.add_field(name = "Album",value = album)
 	if len(copyright) > 0:
 		info.add_field(name = "Copyright",value = copyright)
-	info.set_image(url = cover)
+	if withCover:
+		info.set_image(url = cover)
 	await track['channel'].send(content = mContent,embed = info)
 def songValidator(url):
 	try:
@@ -107,10 +108,9 @@ async def processTrack(client):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_medium']
+	cover = track['album']['cover_xl']
 	duration = track['duration']
 	await printTrack(client, track,mContent = "Now playing:")
-	#act = discord.Activity(details = "Playing {} by {}".format(title,artist),small_image_url=track['album']['cover_medium'],large_image_url=track['album']['cover_medium'],type=discord.ActivityType.playing)
 	act = discord.Game(name="{} by {}".format(title,artist))
 	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
@@ -133,7 +133,7 @@ def processAlbum(client,album):
 	albumid = album['id']
 	title = album['title']
 	artist = album['artist']['name']
-	cover = album['cover_medium']
+	cover = album['cover_xl']
 	info = discord.Embed()
 	info.title = title
 	info.add_field(name = "Artist",value = artist)
@@ -315,7 +315,7 @@ async def on_message(message):
 		if not client.playing:
 			await processTrack(client)
 		else:
-			await printTrack(client, track,mContent = "Added to Queue")
+			await printTrack(client, track,mContent = "Added to Queue",withCover = False)
 		return
 	if message.content.startswith("d!np"):
 		if client.np:
