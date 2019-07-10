@@ -7,6 +7,7 @@ import asyncio
 import deez
 import google
 import os
+import datetime
 from dotenv import load_dotenv
 cl = discord.Client()
 gq = {}
@@ -111,8 +112,6 @@ async def processTrack(client):
 	cover = track['album']['cover_xl']
 	duration = track['duration']
 	await printTrack(client, track,mContent = "Now playing:")
-	act = discord.Game(name="{} by {}".format(title,artist))
-	await cl.change_presence(activity=act)
 	lyrics = deez.getlyrics(title, album, artist,duration)
 	chan = track['voice']
 	if not lyrics['error'] and lyrics['has_lrc']:
@@ -128,6 +127,8 @@ async def processTrack(client):
 		client.playing = True
 		client.voiceclient = await chan.connect()
 		client.placeholder = "{} - {}".format(title,artist)
+		act = discord.Activity(name="{} by {}".format(title,artist),type = discord.ActivityType.listening,start = datetime.datetime.utcnow())
+		await cl.change_presence(activity=act)
 		client.voiceclient.play(discord.PCMAudio(stream),after=stream.cleanup)
 def processAlbum(client,album):
 	albumid = album['id']
@@ -201,7 +202,7 @@ async def on_message(message):
 			del client.queue[idx-1]
 			await message.channel.send(F"Song at index {idx} was removed from queue.")
 		except:
-			await message.channel.send("Invalid index")
+			await message.channel.send("Invalid index.")
 	if message.content.startswith('d!stop'):
 		stream_ended(client,leave = True)
 		client.queue = deque()
