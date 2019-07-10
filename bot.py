@@ -166,6 +166,7 @@ async def on_message(message):
 		embed.add_field(name = "`d!queue`", value="Show current music queue",inline=False)
 		embed.add_field(name = "`d!shuffle`", value="Shuffle the whole queue",inline=False)
 		embed.add_field(name = "`d!skip [noloop|norepeat|nr]`", value="Skip the current song, specify `noloop|norepeat|nr` if you don't want it to loop again.",inline=False)
+		embed.add_field(name = "`d!remove index`", value="Remove the song with given index from queue.",inline=False)
 		embed.add_field(name = "`d!pause`", value="Pause the current song",inline=False)
 		embed.add_field(name = "`d!resume`", value="Resume the paused song or resume a left queue",inline=False)
 		embed.add_field(name = "`d!leave`", value="Skip the current song and leaves the current voice channel.",inline=False)
@@ -189,6 +190,18 @@ async def on_message(message):
 		else:
 			stream_ended(client)
 		return
+	if message.content.startswith('d!remove'):
+		idx = message.content[len('d!remove')::]
+		try:
+			idx = int(idx)
+			if idx<0:
+				idx = len(client.queue) - idx + 1
+			elif idx == 0:
+				idx = 1
+			del client.queue[idx-1]
+			await message.channel.send(F"Song at index {idx} was removed from queue.")
+		except:
+			await message.channel.send("Invalid index")
 	if message.content.startswith('d!stop'):
 		stream_ended(client,leave = True)
 		client.queue = deque()
