@@ -195,7 +195,7 @@ async def on_message(message):
 		try:
 			idx = int(idx)
 			if idx<0:
-				idx = len(client.queue) - idx + 1
+				idx = len(client.queue) + idx + 1
 			elif idx == 0:
 				idx = 1
 			del client.queue[idx-1]
