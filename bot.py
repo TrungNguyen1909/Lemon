@@ -55,7 +55,7 @@ async def printTrack(client,track,mContent = None, withCover = True):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_xl']
+	cover = track['album']['cover_big']
 	duration = track['duration']
 	copyright = deez.getTrackInfo(trackid)['COPYRIGHT']
 	info = discord.Embed()
@@ -109,7 +109,7 @@ async def processTrack(client):
 	title = track['title']
 	artist = track['artist']['name']
 	album = track['album']['title']
-	cover = track['album']['cover_xl']
+	cover = track['album']['cover_big']
 	duration = track['duration']
 	await printTrack(client, track,mContent = "Now playing:")
 	lyrics = deez.getlyrics(title, album, artist,duration)
@@ -134,7 +134,7 @@ def processAlbum(client,album):
 	albumid = album['id']
 	title = album['title']
 	artist = album['artist']['name']
-	cover = album['cover_xl']
+	cover = album['cover_big']
 	info = discord.Embed()
 	info.title = title
 	info.add_field(name = "Artist",value = artist)
