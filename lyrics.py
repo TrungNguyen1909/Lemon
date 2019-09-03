@@ -66,6 +66,6 @@ def getlyrics(track,album,artist,duration = None):
 		return result
 		
 if __name__ == "__main__":
-	result = getlyrics("The best thing i ever did", "The year of YES", artist = "TWICE")
+	result = getlyrics("What is love?", "What is love?", artist = "TWICE")
 	print(result)
 

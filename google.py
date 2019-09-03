@@ -22,16 +22,17 @@ def findSong(title, artist='',validator = None):
 	else:
 		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
 	soup = BeautifulSoup(resp.text,'lxml')
-	name_link = soup.find_all('h3', class_='LC20lb')
-	link = soup.find_all('cite')
-	for n_link, l in zip(name_link,link):
-		print(f'{n_link.text}\n{l.text}')
+	name_links = []
+	for nl in soup.find_all('div', class_='r'):
+		name_links.append((nl.find_all('div',class_='ellip')[0].text,nl.find_all('a')[0]['href']))
+	for n, l in name_links:
+		print(f'{n}\n{l}')
 		print('---------')
 		if validator:
-			if validator(l.text):
-				return l.text
-		elif 'track' in l.text:
-			return l.text
+			if validator(l):
+				return l
+		elif 'track' in l:
+			return l
 	return None
 def findAlbum(title, artist='',validator = None):
 	resp = None
@@ -40,16 +41,18 @@ def findAlbum(title, artist='',validator = None):
 	else:
 		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
 	soup = BeautifulSoup(resp.text,'lxml')
-	name_link = soup.find_all('h3', class_='LC20lb')
-	link = soup.find_all('cite')
-	for n_link, l in zip(name_link,link):
-		print(f'{n_link.text}\n{l.text}')
+	name_links = []
+	for nl in soup.find_all('div', class_='r'):
+		name_links.append((nl.find_all('div',class_='ellip')[0].text,nl.find_all('a')[0]['href']))
+	for n, l in name_links:
+		print(f'{n}\n{l}')
 		print('---------')
 		if validator:
-			if validator(l.text):
-				return l.text
-		elif 'album' in l.text:
-			return l.text
+			if validator(l):
+				return l
+		elif 'album' in l:
+			return l
 	return None
 if __name__ == "__main__":
-	findSong("Counting star","One Republic")
+	print(findSong("Counting star","One Republic"))
+	print(findAlbum("Weathering with you","RADWIMPS"))
