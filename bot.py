@@ -78,26 +78,66 @@ def songValidator(url):
 		return track['preview'] !='' and len(track['available_countries'])>0
 	except:
 		return False
+
+def ed(word1, word2):
+	word2 = word2.lower()
+	word1 = word1.lower()
+	matrix = [[0 for x in range(len(word2) + 1)] for x in range(len(word1) + 1)]
+
+	for x in range(len(word1) + 1):
+		matrix[x][0] = x
+	for y in range(len(word2) + 1):
+		matrix[0][y] = y
+
+	for x in range(1, len(word1) + 1):
+		for y in range(1, len(word2) + 1):
+			if word1[x - 1] == word2[y - 1]:
+				matrix[x][y] = min(
+					matrix[x - 1][y] + 1,
+					matrix[x - 1][y - 1],
+					matrix[x][y - 1] + 1
+				)
+			else:
+				matrix[x][y] = min(
+					matrix[x - 1][y] + 1,
+					matrix[x - 1][y - 1] + 1,
+					matrix[x][y - 1] + 1
+				)
+
+	return matrix[len(word1)][len(word2)]
+
 def findTrack(title,artist):
-	track =	google.findSong(title,artist,songValidator)
-	if not track:
-		res = deez.search(title,artist)
-		if len(res)>0:
-			track = res[0]
+	artist = artist if artist is not None else ''
+	gtrack = google.findSong(title,artist,songValidator)
+	gtrackid = deez.getDeezerUrlParts(gtrack)['id']
+	gtrack = deez.searchTrackFromID(gtrackid)
+	dtrack = deez.search(title,artist)
+	if len(dtrack)>0:
+		dtrack = dtrack[0]
 	else:
-		trackid = deez.getDeezerUrlParts(track)['id']
-		track = deez.searchTrackFromID(trackid)
-	return track
+		dtrack = None
+	tracks = list(filter(lambda a:a is not None,[gtrack,dtrack]))
+	if len(tracks)==1:
+		return tracks[0]
+	elif len(tracks)==0:
+		return None
+	return min(tracks,key=lambda x:ed(title+artist,x['title']+x['artist']['name']))
 def findAlbum(title,artist):
-	album =	google.findAlbum(title,artist)
-	if not album:
-		res = deez.searchAlbum(title,artist)
-		if len(res)>0:
-			album = res[0]
+	artist = artist if artist is not None else ''
+	galbum = google.findAlbum(title,artist)
+	galbumid = deez.getDeezerUrlParts(galbum)['id']
+	galbum = deez.searchAlbumFromID(galbumid)
+	dalbum = deez.searchAlbum(title,artist)
+	if len(dalbum)>0:
+		dalbum = dalbum[0]
 	else:
-		albumid = deez.getDeezerUrlParts(album)['id']
-		album = deez.searchAlbumFromID(albumid)
-	return album
+		dalbum = None
+	albums = list(filter(lambda a:a is not None,[galbum,dalbum]))
+	if len(albums)==1:
+		return albums[0]
+	elif len(albums)==0:
+		return None
+	return min(albums,key=lambda x:ed(title+artist,x['title']+x['artist']['name']))
 async def processTrack(client):
 	if not client.queue or len(client.queue)==0:
 		#await message.channel.send("Empty music queue")
