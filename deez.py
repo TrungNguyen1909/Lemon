@@ -148,9 +148,12 @@ def download(deezerUrl):
 
 def search(track,artist = None):
 	if not artist:
-		return requests.get('https://api.deezer.com/search?q=track:"{}"'.format(quote_plus(track))).json()['data']
+		res = requests.get('https://api.deezer.com/search?q=track:"{}"'.format(quote_plus(track))).json()['data']
 	else:
-		return requests.get('https://api.deezer.com/search?q=track:"{}"artist:"{}"'.format(quote_plus(track),quote_plus(artist))).json()['data']
+		res = requests.get('https://api.deezer.com/search?q=track:"{}"artist:"{}"'.format(quote_plus(track),quote_plus(artist))).json()['data']
+	
+	res.sort(key=lambda x:x['rank'],reverse=True)
+	return res
 		
 def searchTrackFromID(trackid):
 	return requests.get('https://api.deezer.com/track/{}'.format(trackid)).json()
@@ -158,9 +161,11 @@ def searchAlbumFromID(albumid):
 	return requests.get('https://api.deezer.com/album/{}'.format(albumid)).json()
 def searchAlbum(album,artist = None):
 	if not artist:
-			return requests.get('https://api.deezer.com/search/album?q=album:"{}"'.format(quote_plus(album))).json()['data']
+			res = requests.get('https://api.deezer.com/search/album?q=album:"{}"'.format(quote_plus(album))).json()['data']
 	else:
-		return requests.get('https://api.deezer.com/search/album?q=album:"{}"artist:"{}"'.format(quote_plus(album),quote_plus(artist))).json()['data']
+		res =  requests.get('https://api.deezer.com/search/album?q=album:"{}"artist:"{}"'.format(quote_plus(album),quote_plus(artist))).json()['data']
+	res.sort(key=lambda x:x['rank'],reverse=True)
+	return res
 def getAlbumTracks(albumid):
 	return requests.get("https://api.deezer.com/album/{}/tracks".format(albumid)).json()['data']
 

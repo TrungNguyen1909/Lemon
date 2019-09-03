@@ -17,7 +17,7 @@ region = os.getenv('GOOGLE_REGION')
 def findSong(title, artist='',validator = None):
 	
 	resp = None
-	if artist is not None:
+	if artist is not None and len(artist)>0:
 		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} - {} site:deezer.com'.format(artist,title),'gl':region})
 	else:
 		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})
@@ -36,7 +36,7 @@ def findSong(title, artist='',validator = None):
 	return None
 def findAlbum(title, artist='',validator = None):
 	resp = None
-	if artist is not None:
+	if artist is not None and len(artist)>0:
 		resp  = gsession.get('https://www.google.com.vn/search',params = {'q':'{} - {} site:deezer.com'.format(artist,title),'gl':region})
 	else:
 		resp  = gsession.get('https://www.google.com/search',params = {'q':'{} site:deezer.com'.format(title),'gl':region})

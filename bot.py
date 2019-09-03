@@ -109,8 +109,9 @@ def ed(word1, word2):
 def findTrack(title,artist):
 	artist = artist if artist is not None else ''
 	gtrack = google.findSong(title,artist,songValidator)
-	gtrackid = deez.getDeezerUrlParts(gtrack)['id']
-	gtrack = deez.searchTrackFromID(gtrackid)
+	if gtrack is not None:
+		gtrackid = deez.getDeezerUrlParts(gtrack)['id']
+		gtrack = deez.searchTrackFromID(gtrackid)
 	dtrack = deez.search(title,artist)
 	if len(dtrack)>0:
 		dtrack = dtrack[0]
@@ -121,12 +122,13 @@ def findTrack(title,artist):
 		return tracks[0]
 	elif len(tracks)==0:
 		return None
-	return min(tracks,key=lambda x:ed(title+artist,x['title']+x['artist']['name']))
+	return min(tracks,key=lambda x:ed(title+artist,x['title']+x['artist']['name'])*x['rank'])
 def findAlbum(title,artist):
 	artist = artist if artist is not None else ''
 	galbum = google.findAlbum(title,artist)
-	galbumid = deez.getDeezerUrlParts(galbum)['id']
-	galbum = deez.searchAlbumFromID(galbumid)
+	if galbum is not None:
+		galbumid = deez.getDeezerUrlParts(galbum)['id']
+		galbum = deez.searchAlbumFromID(galbumid)
 	dalbum = deez.searchAlbum(title,artist)
 	if len(dalbum)>0:
 		dalbum = dalbum[0]
@@ -137,7 +139,7 @@ def findAlbum(title,artist):
 		return albums[0]
 	elif len(albums)==0:
 		return None
-	return min(albums,key=lambda x:ed(title+artist,x['title']+x['artist']['name']))
+	return min(albums,key=lambda x:ed(title+artist,x['title']+x['artist']['name'])*x['rank'])
 async def processTrack(client):
 	if not client.queue or len(client.queue)==0:
 		#await message.channel.send("Empty music queue")
