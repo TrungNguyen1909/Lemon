@@ -50,6 +50,30 @@ def findSong(title, artist=''):
 		return (d['tracks']['items'][0]['name'],d['tracks']['items'][0]['artists'][0]['name'])
 	except:
 		return None
-	
+
+def findAlbum(title, artist=''):
+	if expiry<=time.time():
+		fetchToken()
+	params = [
+		('type', 'album'),
+		('decorate_restrictions', 'false'),
+		('best_match', 'true'),
+		('include_external', 'audio'),
+		('limit', '50'),
+		('userless', 'true'),
+		('market', market),
+	]
+	if len(artist)>0:
+		params.append(('q', F'{title} artist:{artist}'))
+	else:
+		params.append(('q', F'{title}'))
+	response = s.get('https://api.spotify.com/v1/search', headers=headers, params=params)
+	d = response.json()
+	try:
+		return (d['albums']['items'][0]['name'],d['albums']['items'][0]['artists'][0]['name'])
+	except:
+		return None
 if __name__ == "__main__":
 	print(findSong("Grand Escape",""))
+	print(findSong("Grand Escape","RADWIMPS"))
+	print(findAlbum("Weathering With You"))

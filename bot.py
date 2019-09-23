@@ -111,7 +111,7 @@ def findTrack(title,artist):
 	artist = artist if artist is not None else ''
 	#Find on Spotify for name
 	strack = spotifysearch.findSong(title,artist)
-	if strack is not None:
+	if strack:
 		dtrack = deez.search(strack[0],strack[1])
 		if len(dtrack)>0:
 			return dtrack[0]
@@ -132,6 +132,12 @@ def findTrack(title,artist):
 	return min(tracks,key=lambda x:ed(title+artist,x['title']+x['artist']['name'])*x['rank'])
 def findAlbum(title,artist):
 	artist = artist if artist is not None else ''
+	#Find on Spotify for name
+	salbum = spotifysearch.findAlbum(title,artist)
+	if salbum:
+		dalbum = deez.searchAlbum(salbum[0],salbum[1])
+		if len(dalbum)>0:
+			return dalbum[0]
 	galbum = google.findAlbum(title,artist)
 	if galbum is not None:
 		galbumid = deez.getDeezerUrlParts(galbum)['id']
