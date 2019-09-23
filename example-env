@@ -2,3 +2,4 @@ BOT_TOKEN=<from discord>
 MXM_TOKEN=<proxy and get the token from mxm desktop app>
 DEEZER_ARL=<login to deezer.com find the ARL cookies>
 GOOGLE_REGION=<get a country code from https://developers.google.com/custom-search/docs/xml_results_appendices#countryCodes>
+SPOTIFY_MARKET=VN

@@ -6,6 +6,7 @@ import re
 import asyncio
 import deez
 import google
+import spotifysearch
 import os
 import datetime
 from dotenv import load_dotenv
@@ -108,6 +109,12 @@ def ed(word1, word2):
 
 def findTrack(title,artist):
 	artist = artist if artist is not None else ''
+	#Find on Spotify for name
+	strack = spotifysearch.findSong(title,artist)
+	if strack is not None:
+		dtrack = deez.search(strack[0],strack[1])
+		if len(dtrack)>0:
+			return dtrack[0]
 	gtrack = google.findSong(title,artist,songValidator)
 	if gtrack is not None:
 		gtrackid = deez.getDeezerUrlParts(gtrack)['id']
