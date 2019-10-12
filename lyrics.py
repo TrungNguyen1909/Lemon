@@ -32,12 +32,13 @@ def getlyrics(track,album,artist,duration = None):
 		result['txt'] = lyrics
 		result['has_lrc'] = False
 		try:
+			result['lang'] = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_language']
 			synced_lyrics = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_body']
 			sd = json.loads(synced_lyrics)
-			result['lang'] = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_language']
 			result['lrc']=sd
 			result['has_lrc']=True
 		except:
+			result['lang'] = ''
 			pass
 		finally:
 			if result['lang'] == 'en':
@@ -66,6 +67,6 @@ def getlyrics(track,album,artist,duration = None):
 		return result
 		
 if __name__ == "__main__":
-	result = getlyrics("What is love?", "What is love?", artist = "TWICE")
+	result = getlyrics("Nandemonaiya (Movie Version)", "Your Name", artist = "RADWIMPS",duration=344)
 	print(result)
 
