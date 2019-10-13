@@ -28,9 +28,12 @@ def getlyrics(track,album,artist,duration = None):
 	try:
 		response = requests.get('https://apic.musixmatch.com/ws/1.1/macro.subtitles.get', params=params, verify=False)
 		d = json.loads(response.text)
-		lyrics = d['message']['body']['macro_calls']['track.lyrics.get']['message']['body']['lyrics']['lyrics_body']
-		result['txt'] = lyrics
+		result['txt'] = ''
 		result['has_lrc'] = False
+		try:
+			result['txt'] = lyrics = d['message']['body']['macro_calls']['track.lyrics.get']['message']['body']['lyrics']['lyrics_body']
+		except:
+			pass
 		try:
 			result['lang'] = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_language']
 			synced_lyrics = d['message']['body']['macro_calls']['track.subtitles.get']['message']['body']['subtitle_list'][0]['subtitle']['subtitle_body']
@@ -55,6 +58,7 @@ def getlyrics(track,album,artist,duration = None):
 						line['text'] = line['original']	
 						translated.append(line)
 				result['lrc'] = translated
+				result['has_lrc']=True
 				result['has_trans'] = True
 				return result
 			except Exception as e:

@@ -32,9 +32,26 @@ def fetchToken():
 	}
 
 	response = s.get('https://open.spotify.com/browse', headers=_headers)
-	expiry = s.cookies['wp_expiration']
+	_headers = {
+		'Sec-Fetch-Mode': 'cors',
+		'DNT': '1',
+		'Accept-Language': 'vi',
+		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+		'Accept': 'application/json',
+		'Referer': 'https://open.spotify.com/browse/featured',
+		'Spotify-App-Version': '1570840119',
+		'App-Platform': 'WebPlayer',
+	}
+
+	params = (
+		('reason', 'transport'),
+		('productType', 'web_player'),
+	)
+
+	response = s.get('https://open.spotify.com/access_token', headers=_headers, params=params).json()
+	expiry = response['accessTokenExpirationTimestampMs']
 	global headers
-	headers['Authorization'] =  F"Bearer {s.cookies['wp_access_token']}"
+	headers['Authorization'] =  F"Bearer {response['accessToken']}"
 def findSong(title, artist=''):
 	if expiry<=time.time():
 		fetchToken()
