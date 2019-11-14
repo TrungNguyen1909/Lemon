@@ -2,5 +2,5 @@ requests
 PyCrypto
 beautifulsoup4
 lxml
-discord.py[voice]==1.2.3
+discord.py[voice]
 python-dotenv
