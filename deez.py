@@ -1,4 +1,6 @@
-CHUNK_SIZE = 2048
+#!/usr/bin/env python3
+CHUNK_SIZE = 3840
+
 import io
 import os
 import signal
@@ -77,7 +79,7 @@ def initDeezerApi():
 	response = session.post(unofficialApiUrl,params=param)
 	response=response.json()
 	if response:
-		print('Successfully initiated Deezer API. Checkform: "' + response['results']['checkForm'] + '"');
+		#print('Successfully initiated Deezer API. Checkform: "' + response['results']['checkForm'] + '"');
 		unofficialApiQueries['api_token'] = response['results']['checkForm'];
 def getDeezerUrlParts(deezerUrl):
 	urlParts = re.split(r'\/(\w+)\/(\d+)',deezerUrl);
@@ -122,7 +124,7 @@ def decryptTrack(trackInfos,trackBuffer):
 	cipher = Blowfish.new(getBlowfishKey(trackInfos),Blowfish.MODE_CBC,bytes(range(8)))
 	for chunk in trackBuffer:
 		decrypted = chunk
-		if counter % 3 == 0 and len(chunk)==CHUNK_SIZE:
+		if counter % 3 == 0 and len(chunk)==2048:
 			cipher = Blowfish.new(getBlowfishKey(trackInfos),Blowfish.MODE_CBC,bytes(range(8)))
 			decrypted= cipher.decrypt(decrypted)
 		counter += 1
@@ -134,21 +136,21 @@ def downloadTrack(trackInfos,trackQualityId):
 	
 def downloadSingleTrack(trackid):
 	initDeezerApi()
-	print(F"Starting download for trackid {trackid}")
+	#print(F"Starting download for trackid {trackid}")
 	if(False):
 		pass
 	else:
 		trackInfo = getTrackInfo(trackid)
 		return downloadTrack(trackInfo, selectedMusicQuality['id'])
 def download(deezerUrl):
-	print(F"Starting download from url {deezerUrl}")
+	#print(F"Starting download from url {deezerUrl}")
 	deezerUrlParts = getDeezerUrlParts(deezerUrl)
 	assert(deezerUrlParts['type']=='track')
 	return downloadSingleTrack(deezerUrlParts['id'])
 
 def search(track,artist = None):
 	if not artist:
-		res = requests.get('https://api.deezer.com/search?q=track:"{}"'.format(quote_plus(track))).json()['data']
+		res = requests.get('https://api.deezer.com/search?q="{}"'.format(quote_plus(track))).json()['data']
 	else:
 		res = requests.get('https://api.deezer.com/search?q=track:"{}"artist:"{}"'.format(quote_plus(track),quote_plus(artist))).json()['data']
 	
@@ -175,19 +177,20 @@ class FFMpeg:
 		self.stdin = self.proc.stdin
 		self.stdout = self.proc.stdout
 		self.stderr = self.proc.stderr
-		self.time = datetime.time()
 		self.callback = callback
-		if lyrics and type(lyrics) != type(deque):
-			self.lyrics = deque(lyrics)
-		else:
-			self.lyrics = lyrics
+		self.lyrics = lyrics
 		self.after = after
 		self.oflag = fcntl.fcntl(self.stdout.fileno(), fcntl.F_GETFL)
 		self.lock = threading.Lock()
 		self.end = threading.Event()
 		self.new_time = threading.Event()
+		self.buffering_done = False
 		self.client = client
+		self.cidx = 0
+		self.chunks = []
+		self.buf = b''
 		threading._start_new_thread(self.callbackLyrics,())
+		threading._start_new_thread(self.poll,())
 		threading._start_new_thread(self._cleanup,())
 		'''
 		fcntl.fcntl(
@@ -196,6 +199,8 @@ class FFMpeg:
 				fcntl.fcntl(self.stdout.fileno(), fcntl.F_GETFL) | os.O_NONBLOCK,
 			)
 		'''
+	def time(self):
+		return 0.02*self.cidx
 	def callbackLyrics(self):
 		if not self.lyrics or len(self.lyrics) == 0:
 			return
@@ -204,29 +209,37 @@ class FFMpeg:
 				return
 			self.new_time.wait()
 			self.new_time.clear()
+			if self.end.is_set():
+				return
 			if len(self.lyrics) == 0:
 				return
-			line = self.lyrics[0]
-			t = line['time']
-			while self.time >= datetime.time(minute =t['minutes'],second = t['seconds'],microsecond=t['hundredths']*(10000)):
-				#print(line['text'])
-				if self.callback:
-					threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
-				self.lyrics.popleft()
-				if len(self.lyrics) == 0:
-					return
-				line = self.lyrics[0]
+			for line in reversed(self.lyrics):
 				t = line['time']
+				if self.time() >= t['total']:
+					#print(line['text'])
+					if self.callback:
+						threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
+					break
 	def __del__(self):
 		self.stop()
 	def read(self,size=3840):
-		data =  self.proc.stdout.read(size)
-		self.time = (datetime.datetime.combine(datetime.date(1,1,1),self.time) + datetime.timedelta(milliseconds=20)).time()
-		if self.lyrics:
-			self.new_time.set()
-		#print(self.time.strftime("%M:%S"))
+		while len(self.chunks)<= self.cidx and not self.buffering_done:
+			sleep(0.5)
+		if self.buffering_done:
+			if not self.end.is_set():
+				self.end.set()
+				self.new_time.set()
+				if self.after:
+					asyncio.create_task(self.after(client = self.client))
+			return b''
+		
+		data = self.chunks[self.cidx]
+		self.cidx += 1
 		if len(data)< 3840:
 			self.end.set()
+		if self.lyrics:
+			self.new_time.set()
+		if len(data)< 3840:
 			if self.after:
 				asyncio.create_task(self.after(client = self.client))
 		return data #+ bytearray([0]*(size-len(data)))
@@ -247,22 +260,42 @@ class FFMpeg:
 			self.proc.stdin.close()
 	def stop(self):
 		self.end.set()
+	def append(self,data):
+		self.buf += data
+		if len(self.buf) >= CHUNK_SIZE:
+			self.chunks.append(self.buf[:CHUNK_SIZE])
+			self.buf = self.buf[CHUNK_SIZE:]
+	def clearBuf(self):
+		if len(self.buf) > 0:
+			self.chunks.append(self.buf)
+			self.buf = b''
+		self.buffering_done = True
+	def poll(self):
+		while True:
+			try:
+				data = self.proc.stdout.read(CHUNK_SIZE)
+				self.append(data)
+			except AttributeError:
+				self.clearBuf()
+				return
+	def seek(self,second):
+		self.cidx = int(second/0.02)
 	def _cleanup(self):
-		print("Waiting for stream.")
+		#print("Waiting for stream.")
 		self.end.wait()
-		print("Stream ended. House-keeping.")
+		#print("Stream ended. House-keeping.")
 		self.new_time.set()
 		threading._start_new_thread(self.kill,())
 	def cleanup(self,*args,**kwargs):
-		print("Stream cleanup requested. Ending stream.")
+		#print("Stream cleanup requested. Ending stream.")
 		self.end.set()
 	def kill(self):
 		if not self.proc:
 			return
 		self.proc.kill()
-		print("Killing ffmpeg")
+		#print("Killing ffmpeg")
 		self.proc = None
-		print("ffmpeg killed")
+		#print("ffmpeg killed")
 def stream(ffmpeg,trackid):
 	for chunk in downloadSingleTrack(trackid):
 		if not ffmpeg.write(chunk):
@@ -272,9 +305,36 @@ def streamTrack(trackid,client = None,readCallback=None,lyrics=None,after = None
 	ffmpeg = FFMpeg(client = client,callback=readCallback,lyrics =lyrics,after=after)
 	threading._start_new_thread(stream,(ffmpeg,trackid))
 	return ffmpeg
-def sendLyrics(line,**kwargs):
-	print(line['text'])
-if __name__ =="__main__":
+
+is_playing = threading.Event()
+def waitKey(scr):
+	while True:
+		c = scr.get_wch()
+		if c in ('p','P',' '):
+			if is_playing.is_set():
+				is_playing.clear()
+			else:
+				is_playing.set()
+def main(scr):
+	import curses
+	curses.noecho()
+	scr.clear()
+	placeholder = ''
+	def sendLyrics(line,**kwargs):
+		#print(text)
+		text = line['text']
+		if len(text) == 0:
+			text = placeholder
+		elif 'en_text' in line:
+			et = line['en_text']
+			if len(et) == 0:
+				et = placeholder
+			else:
+				text += '\n\n'+et+'\n'
+		scr.move(1,0)
+		scr.clrtoeol()
+		scr.addstr(1,0,text)
+		scr.refresh()
 	import pyaudio
 	initDeezerApi()
 	p = pyaudio.PyAudio()
@@ -282,8 +342,9 @@ if __name__ =="__main__":
 												channels=2,
 												rate=48000,
 												output=True)
-	track = "What is love?"
-	artist = "Twice"
+	import sys
+	track = sys.argv[1]
+	artist = sys.argv[2] if len(sys.argv)>2 else None
 	track = search(track,artist)
 	#print(track)
 	track = track[0]
@@ -293,17 +354,24 @@ if __name__ =="__main__":
 	album = track['album']['title']
 	cover = track['album']['cover_medium']
 	duration = track['duration']
+	#placeholder = F"{title} - {artist}"
+	scr.addstr(F"{title} - {artist}")
+	scr.refresh()
 	lyrics = getlyrics(title, album, artist,duration)
-	if lyrics['has_lrc']:
+	if 'has_lrc' in lyrics and lyrics['has_lrc']:
 		s = streamTrack(trackid,readCallback = sendLyrics,lyrics = lyrics['lrc'],client = None)
 	else:
 		s = streamTrack(trackid)
+	is_playing.set()
+	threading._start_new_thread(waitKey,(scr,))
 	while True:
+		is_playing.wait()
 		c = s.read()
 		if c  and len(c)>0:
 			astream.write(c)
 		else:
 			break
-		
-
+if __name__ == "__main__":
+	import curses
+	curses.wrapper(main)
 

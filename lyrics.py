@@ -4,11 +4,14 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 USER_TOKEN = os.getenv('MXM_TOKEN')
-def getlyrics(track,album,artist,duration = None):
+def getlyrics(track,album,artist,duration = None,albumartist = None):
+	if albumartist is None:
+		albumartist = artist
 	params = [
 		('format', 'json'),
 		('q_track', track),
-		('q_artist', artist),
+		('q_artists', artist),
+		('q_artist', albumartist),
 		('q_album', album),
 		('user_language', 'en'),
 		('tags', 'playing'),
@@ -16,7 +19,7 @@ def getlyrics(track,album,artist,duration = None):
 		('f_subtitle_length_max_deviation', '1'),
 		('subtitle_format', 'mxm'),
 		('app_id', 'mac-ios-v2.0'),
-		('part','subtitle_translated,lyrics_translated'),
+		('part','lyrics_crowd,subtitle_translated,lyrics_translated'),
 		('selected_language','en'),
 		('usertoken', USER_TOKEN),	
 	]
@@ -27,6 +30,7 @@ def getlyrics(track,album,artist,duration = None):
 	result['error']=False
 	try:
 		response = requests.get('https://apic.musixmatch.com/ws/1.1/macro.subtitles.get', params=params, verify=False)
+		#print(response.text)
 		d = json.loads(response.text)
 		result['txt'] = ''
 		result['has_lrc'] = False
@@ -71,6 +75,6 @@ def getlyrics(track,album,artist,duration = None):
 		return result
 		
 if __name__ == "__main__":
-	result = getlyrics("Nandemonaiya (Movie Version)", "Your Name", artist = "RADWIMPS",duration=344)
+	result = getlyrics("Just the Way You Are", "Doo-Wops & Hooligans", artist = "Bruno Mars",duration=3*60+40)
 	print(result)
 

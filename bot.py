@@ -32,6 +32,8 @@ def sendLyrics(client,line):
 			text += '\n\n'+et+'\n'
 	asyncio.run_coroutine_threadsafe(client.LM.edit(content = '```'+text+'```'),cl.loop)
 def stream_ended(client,skip = False,leave=False):
+	client.stream = None
+	client.duration = 0
 	if client.looping:
 		if client.np and not skip:
 			client.queue.append(client.np)
@@ -184,7 +186,9 @@ async def processTrack(client):
 		client.placeholder = "{} - {}".format(title,artist)
 		act = discord.Activity(name="{} by {}".format(title,artist),type = discord.ActivityType.listening,start = datetime.datetime.utcnow())
 		await cl.change_presence(activity=act)
-		client.voiceclient.play(discord.PCMAudio(stream),after=stream.cleanup)
+		client.stream = stream
+		client.duration = duration
+		client.voiceclient.play(discord.PCMAudio(client.stream),after=stream.cleanup)
 def processAlbum(client,album):
 	albumid = album['id']
 	title = album['title']
@@ -205,7 +209,7 @@ async def on_ready():
 	print('We have logged in as {0.user}'.format(cl))
 	await cl.change_presence(activity=discord.Activity())
 @cl.event
-async def on_message(message):
+async def on_message(message: discord.message):
 	if message.author.bot:
 		return
 	if message.guild.id not in gq:
@@ -227,6 +231,7 @@ async def on_message(message):
 		embed.add_field(name = "`d!resume`", value="Resume the paused song or resume a left queue",inline=False)
 		embed.add_field(name = "`d!leave`", value="Skip the current song and leaves the current voice channel.",inline=False)
 		embed.add_field(name = "`d!stop`", value="Stop the music session, destroy the whole queue",inline=False)
+		embed.add_field(name = "`d!seek [minutes] second`", value="Seek the current song.",inline=False)
 		await message.channel.send(embed = embed)
 		return
 	if message.content.startswith('d!leave'):
@@ -386,6 +391,30 @@ async def on_message(message):
 		else:
 			await printTrack(client, track,mContent = "Added to Queue",withCover = False)
 		return
+	if message.content.startswith("d!seek"):
+		content = message.content[len('d!seek'):]
+		try:
+			args = []
+			for s in content.strip().split():
+				try:
+					args.append(int(s))
+				except:
+					pass
+			second = -1
+			if len(args)==0:
+				raise ValueError
+			elif len(args) >=2:
+				second = 60*args[0] +args[1]
+			elif len(args) ==1:
+				second = args[0]
+			else:
+				raise ValueError
+			if second<0 or second>client.duration:
+				raise ValueError
+			client.stream.seek(second)
+		except ValueError:
+			await message.channel.send("Invalid seek!")
+		
 	if message.content.startswith("d!np"):
 		if client.np:
 			await printTrack(client,client.np,mContent = "Now playing:")
@@ -410,5 +439,51 @@ async def on_message(message):
 			track['channel'] = message.channel
 			await printTrack(client, track, mContent = "May this be the song you requested?")
 		return
+	'''
+	if message.content.startswith('d!js'):
+		content = message.content[len('d!js '):].strip()
+		import uuid
+		filename = str(uuid.uuid4())
+		with open('./sandbox/'+filename,'w') as f:
+			f.write(content)
+		import subprocess
+		proc = subprocess.run(['/usr/bin/sandbox-exec','-f','../sandbox.sb','/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc',filename],capture_output=True,cwd='./sandbox')
+		err = proc.stderr.decode('utf-8')
+		out = proc.stdout.decode('utf-8')
+		os.unlink('./sandbox/'+filename)
+		embed = discord.Embed()
+		embed.title = "JavaScript Minimal Shell"
+		embed.add_field(name = 'Input', value=F'```js\n{content}\n```')
+		if len(out) > 0:
+			embed.add_field(name = 'Output', value=F'```{out}```')
+		if len(err) > 0:
+			embed.add_field(name = 'Error', value=F'```{err}```')
+		await message.channel.send(embed=embed)
+	if message.content.startswith('d!oxford'):
+		content = message.content[len('d!oxford'):].strip()
+		definition = oxford.getDefintion(content)
+		if definition:
+			embed = discord.Embed()
+			embed.title = '**'+definition[0]+'**'
+			embed.description = ''
+			for i in range(1,len(definition)):
+				embed.description += (definition[i])+'\n'
+				if len(embed.description)>=1500:
+					await message.channel.send(embed=embed)
+					embed = discord.Embed()
+					embed.description = ''
+			if len(embed.description)>0:
+				await message.channel.send(embed=embed)
+		else:
+			p = oxford.correction(content)
+			if len(p) > 0:
+				embed = discord.Embed()
+				embed.title = "Did you mean?"
+				embed.description = '\n'.join(p)
+				await message.channel.send(embed=embed)
+			else:
+				await message.channel.send("I can't find any words like that")
+		return
+	'''
 load_dotenv()
 cl.run(os.getenv('BOT_TOKEN'))
