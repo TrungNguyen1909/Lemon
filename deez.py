@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 CHUNK_SIZE = 3840
 
+import sys
 import io
 import os
 import signal
@@ -185,6 +186,7 @@ class FFMpeg:
 		self.end = threading.Event()
 		self.new_time = threading.Event()
 		self.buffering_done = False
+		self.download_done = False
 		self.client = client
 		self.cidx = 0
 		self.chunks = []
@@ -258,6 +260,8 @@ class FFMpeg:
 	def alive(self):
 		return self.proc.poll() is not None
 	def close(self):
+		self.download_done = True
+		print("Download completed!",file=sys.stderr)
 		if self.proc:
 			self.proc.stdin.close()
 	def stop(self):
@@ -272,12 +276,15 @@ class FFMpeg:
 			self.chunks.append(self.buf)
 			self.buf = b''
 		self.buffering_done = True
+		print("Buffering completed!",file=sys.stderr)
 	def poll(self):
 		while True:
 			try:
 				data = self.proc.stdout.read(CHUNK_SIZE)
 				self.append(data)
-			except AttributeError:
+				if len(data)<CHUNK_SIZE:
+					raise Exception
+			except:
 				self.clearBuf()
 				return
 	def seek(self,second):

@@ -66,7 +66,7 @@ def getlyrics(track,album,artist,duration = None,albumartist = None):
 				result['has_trans'] = True
 				return result
 			except Exception as e:
-				print(e)
+				#sprint(e)
 				return result
 			finally:
 				return result
