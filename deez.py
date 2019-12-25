@@ -189,6 +189,7 @@ class FFMpeg:
 		self.cidx = 0
 		self.chunks = []
 		self.buf = b''
+		self.prevLine = ''
 		threading._start_new_thread(self.callbackLyrics,())
 		threading._start_new_thread(self.poll,())
 		threading._start_new_thread(self._cleanup,())
@@ -217,15 +218,16 @@ class FFMpeg:
 				t = line['time']
 				if self.time() >= t['total']:
 					#print(line['text'])
-					if self.callback:
+					if self.callback and self.prevLine!=line:
 						threading._start_new_thread(self.callback,(),{'client':self.client,'line':line})
+					self.prevLine = line
 					break
 	def __del__(self):
 		self.stop()
 	def read(self,size=3840):
 		while len(self.chunks)<= self.cidx and not self.buffering_done:
 			sleep(0.5)
-		if self.buffering_done:
+		if self.buffering_done and self.cidx >= len(self.chunks):
 			if not self.end.is_set():
 				self.end.set()
 				self.new_time.set()

@@ -20,7 +20,7 @@ class mServer():
 		self.np = None
 		self.placeholder = None
 def sendLyrics(client,line):
-	#print(text)
+	#print(line['text'])
 	text = line['text']
 	if len(text) == 0:
 		text = client.placeholder
